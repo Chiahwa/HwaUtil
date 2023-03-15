@@ -1,0 +1,6 @@
+calculation diago
+matrix_type random  6# xxxxx
+matrix_print 1 # xxxxx
+#sssss
+nrows 6
+ncols 6
