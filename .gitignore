@@ -1,0 +1,7 @@
+cmake-build-*/
+.DS_Store
+*.aux
+*.log
+*.out
+*.synctex.gz
+_minted-report/
