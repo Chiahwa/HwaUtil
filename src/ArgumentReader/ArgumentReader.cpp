@@ -12,12 +12,15 @@
 namespace HwaUtil {
     ArgumentReader::ArgumentReader() = default;
 
+    //TODO：多余的参数检测
     void ArgumentReader::ReadArgs(istream &is) {
         constexpr auto max_size = std::numeric_limits<std::streamsize>::max();
 
         if (NArgs == 0)return;
         string line;
+        int nline=0;
         while (getline(is, line)) {
+            ++nline;
             stringstream buf(line);
             getline(buf,line,'#');
             stringstream ssline(line);
@@ -43,6 +46,11 @@ namespace HwaUtil {
 
             ArgVal[ArgID[name]] = val;
             //is.ignore(max_size, '\n');
+            string other;
+            ssline >> other;
+            if(!other.empty()){
+                throw std::runtime_error("Line " + to_string(nline) + ": too much input!");
+            }
         }
         for (auto &arg: ArgID)
             if (!ArgVal.contains(arg.second))
