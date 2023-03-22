@@ -13,7 +13,7 @@
 namespace HwaUtil {
     ArgumentReader::ArgumentReader() = default;
 
-    
+
     void ArgumentReader::ReadArgs(istream &is) {
         constexpr auto max_size = std::numeric_limits<std::streamsize>::max();
 
@@ -73,7 +73,7 @@ namespace HwaUtil {
         return ArgVal[ArgID[name]];
     }
 
-    string ArgumentReader::GetArgV(const int ID) {
+    string ArgumentReader::GetArgV(int ID) {
         if (ID <= NArgs)
             return ArgVal[ID];
         else throw std::out_of_range("GetArgV(ID): Argument ID out of range!");

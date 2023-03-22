@@ -25,7 +25,7 @@ namespace HwaUtil {
         bool AddArg(const string& name);
         void ReadArgs(istream &is);
         string GetArgV(const string &name);
-        string GetArgV(const int ID);
+        string GetArgV(int ID);
 
     };
 
