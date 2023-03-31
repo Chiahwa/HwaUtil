@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
-#include "src/ArgumentReader/ArgumentReader.h"
+#include "ArgumentReader/ArgumentReader.h"
+
 using namespace HwaUtil;
 using namespace std;
 
@@ -17,6 +18,8 @@ int main() {
     argReader.ReadArgs(fs);
 
     fs.close();
+
+    std::cout << argReader << std::endl;
 
     std::cout << "Hello, World!" << std::endl;
     return 0;

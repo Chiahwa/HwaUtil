@@ -79,4 +79,12 @@ namespace HwaUtil {
         else throw std::out_of_range("GetArgV(ID): Argument ID out of range!");
     }
 
+    ostream &operator<<(ostream &os, const ArgumentReader &ar) {
+        for (auto &arg: ar.ArgID) {
+            os << arg.first << " = " << ar.ArgVal.at(arg.second) << endl;
+        }
+        return os;
+    }
+
+
 } // HwaUtil

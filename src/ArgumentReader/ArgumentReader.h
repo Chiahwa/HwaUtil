@@ -27,6 +27,8 @@ namespace HwaUtil {
         string GetArgV(const string &name);
         string GetArgV(int ID);
 
+        friend ostream &operator <<(ostream &os, const ArgumentReader &ar);
+
     };
 
 } // HwaUtil
