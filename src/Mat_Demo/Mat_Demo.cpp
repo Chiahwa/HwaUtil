@@ -7,12 +7,14 @@
 #include <iostream>
 #include <algorithm>
 
+//default constructor.
 HwaUtil::Mat_Demo::Mat_Demo() {
     nrows = 0;
     ncols = 0;
     d = nullptr;
 }
 
+//constructor with initialization.
 HwaUtil::Mat_Demo::Mat_Demo(const int nr, const int nc, const HwaUtil::Mat_Demo::MatrixType initType) {
     nrows = nr;
     ncols = nc;
@@ -129,7 +131,7 @@ HwaUtil::Mat_Demo &HwaUtil::Mat_Demo::operator-(const HwaUtil::Mat_Demo &a) {
         std::cout << "Error: Mat_Demo::operator-: matrix size mismatch" << std::endl;
         exit(1);
     }
-    HwaUtil::Mat_Demo *m = new HwaUtil::Mat_Demo(nrows, ncols, MatrixType::Zero);
+    auto m = new HwaUtil::Mat_Demo(nrows, ncols, MatrixType::Zero);
     for (int i = 0; i < nrows * ncols; i++) {
         m->d[i] = d[i] - a.d[i];
     }

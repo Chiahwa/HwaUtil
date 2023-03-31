@@ -19,11 +19,12 @@ int main() {
     ar.AddArg("matrix_type");
     ar.AddArg("matrix_print");
     ar.AddArg("calculation");
-    ifstream fs("input.txt");
+    string wd=std::filesystem::current_path().string();
+    ifstream fs(wd+"/input.txt");
     ar.ReadArgs(fs);
     fs.close();
 
-    //初始化类型
+    //获取矩阵初始化方式
     auto typestr = ar.GetArgV("matrix_type");
     Mat_Demo::MatrixType matrixType;
     if (typestr == "zero") {
@@ -44,7 +45,7 @@ int main() {
 
     Mat_Demo m1(nrows, ncols, matrixType);
 
-    //计算
+    //根据给定的操作进行计算
     cout<<"calculation: ";
     string  cal = ar.GetArgV("calculation");
     cout<<cal<<endl;
@@ -57,6 +58,7 @@ int main() {
         return 1;
     }
 
+    //按需打印矩阵内容
     string print = ar.GetArgV("matrix_print");
     if (print == "1") {
         cout << "Matrix printed:" << endl;
@@ -67,7 +69,5 @@ int main() {
         cout << "Invalid argument matrix_print" << endl;
         return 1;
     }
-
-    cout << "Hello, World!" <<endl;
     return 0;
 }

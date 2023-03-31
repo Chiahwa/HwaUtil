@@ -1,4 +1,7 @@
 aux_source_directory(. DIR_LIB_SRCS)
+set(LIB_NAME ArgumentReader)
 
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin/ArgumentReader)
-add_library(ArgumentReader ${DIR_LIB_SRCS})
+# 生成链接库
+add_library(${LIB_NAME} ${DIR_LIB_SRCS})
+
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/${LIB_NAME})
