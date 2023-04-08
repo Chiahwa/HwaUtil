@@ -9,5 +9,5 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin/${PROG_NAME})
 
 
-# test file for MatDemoTest
-# configure_file(input.txt ${EXECUTABLE_OUTPUT_PATH}/input.txt COPYONLY)
+# test file
+configure_file(input.txt ${EXECUTABLE_OUTPUT_PATH}/input.txt COPYONLY)

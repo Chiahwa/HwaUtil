@@ -25,15 +25,16 @@ namespace HwaUtil {
         auto program_total_time = program_end_time - program_start_time;
 
         os << "Program total time: " << std::chrono::duration_cast<std::chrono::microseconds>(program_total_time).count() << " microseconds" << std::endl;
+        const int w_class_name = 25, w_func_name = 20, w_time = 16, w_calls = 10, w_avg = 14, w_per = 13;
 
         os <<std::left<<std::setfill('-')
         << "\033[7m"
-        << std::setw(25) << "|CLASS_NAME"
-        << std::setw(20) << "|FUNC_NAME"
-        << std::setw(16) << "|TIME(Sec)"
-        << std::setw(10) << "|CALLS"
-        << std::setw(13) << "|AVG(Sec)"
-        << std::setw(13) << "|PER%"
+        << std::setw(w_class_name) << "|CLASS_NAME"
+        << std::setw(w_func_name) << "|FUNC_NAME"
+        << std::setw(w_time) << "|TIME(Sec)"
+        << std::setw(w_calls) << "|CALLS"
+        << std::setw(w_avg) << "|AVG(Sec)"
+        << std::setw(w_per) << "|PER%"
         << "\033[0m"
         << std::endl;
 
@@ -41,12 +42,12 @@ namespace HwaUtil {
         auto prog_total_time = double (program_total_time.count())
                 *std::chrono::nanoseconds::period::num/std::chrono::nanoseconds::period::den;
         os << "\033[32m"
-           << std::setw(25) << "--"
-           << std::setw(20) << "TOTAL"
-           << std::setw(16) << prog_total_time
-           << std::setw(10) << 1
-           << std::setw(13) << prog_total_time
-           << std::setw(12) << 100.0 << '%'
+           << std::setw(w_class_name) << "--"
+           << std::setw(w_func_name) << "TOTAL"
+           << std::setw(w_time) << prog_total_time
+           << std::setw(w_calls) << 1
+           << std::setw(w_avg) << prog_total_time
+           << std::setw(w_per-1) << 100.0 << '%'
            << "\033[0m"
            << std::endl;
         for (auto &func_time:func_time_info) {
@@ -55,16 +56,17 @@ namespace HwaUtil {
             auto total_count = func_time.second.total_count();
             auto avg_time = func_total_time / total_count;
             auto per_time = (double)func_total_time / prog_total_time;
-            os << std::setw(25) << func_time.first.substr(0, func_time.first.find("|||"))
-            << std::setw(20) << func_time.first.substr(func_time.first.find("|||") + 3)
-            << std::setw(16) << func_total_time
-            << std::setw(10) << total_count
-            << std::setw(13) << avg_time
-            << std::setw(12) << std::fixed<< std::setprecision(1)<<per_time*100 << '%'
+            os << std::setw(w_class_name) << func_time.first.substr(0, func_time.first.find("|||"))
+            << std::setw(w_func_name) << func_time.first.substr(func_time.first.find("|||") + 3)
+            << std::setw(w_time) << std::setprecision(6)<<func_total_time
+            << std::setw(w_calls) << total_count
+            << std::setw(w_avg) << avg_time
+            << std::setw(w_per-1) << std::fixed<< std::setprecision(1)<<per_time*100 << '%'
+            <<std::resetiosflags(std::ios::fixed)
             << std::endl;
         }
 
-        os <<std::setfill('-')<<std::setw(97)<<"-"<<std::endl;
+        os <<std::setfill('-')<<std::setw(w_calls+w_avg+w_time+w_func_name+w_class_name+w_per)<<"-"<<std::endl;
         return os;
     }
 
