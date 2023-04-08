@@ -1,7 +1,0 @@
-calculation diago
-matrix_type random  # xxxxx
-#sssss
-nrows_ 6
-ncols 6
-matrix_print 1 # xxxxx
-

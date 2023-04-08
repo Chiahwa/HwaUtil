@@ -1,7 +1,7 @@
 calculation max
 matrix_type random  # xxxxx
 #sssss
-nrows 6
-ncols 6
+nrows 12
+ncols 12
 matrix_print 1 # xxxxx
 
