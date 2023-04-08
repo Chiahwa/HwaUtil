@@ -25,7 +25,7 @@ namespace HwaUtil {
         auto program_total_time = program_end_time - program_start_time;
 
         os << "Program total time: " << std::chrono::duration_cast<std::chrono::microseconds>(program_total_time).count() << " microseconds" << std::endl;
-        const int w_class_name = 25, w_func_name = 20, w_time = 16, w_calls = 10, w_avg = 14, w_per = 13;
+        const int w_class_name = 28, w_func_name = 28, w_time = 16, w_calls = 10, w_avg = 14, w_per = 13;
 
         os <<std::left<<std::setfill('-')
         << "\033[7m"

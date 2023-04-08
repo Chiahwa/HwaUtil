@@ -7,27 +7,29 @@
 #include "Mat_Demo/Mat_Demo.h"
 #include "ArgumentReader/ArgumentReader.h"
 #include <fstream>
+
 using namespace std;
 using namespace HwaUtil;
 
 long long fib(int n) {
-    HwaUtil::Timer::tick("HwaUtil::main", "fib");
+    HwaUtil::Timer::tick("HwaUtil::(root)", "fib");
     long long ans;
     if (n == 0) ans = 0;
     else if (n == 1) ans = 1;
     else ans = fib(n - 1) + fib(n - 2);
-    HwaUtil::Timer::tock("HwaUtil::main", "fib");
+    HwaUtil::Timer::tock("HwaUtil::(root)", "fib");
     return ans;
 }
 
 int main() {
 
-    HwaUtil::Timer::tick("HwaUtil::main", "main");
+    HwaUtil::Timer::tick("HwaUtil::(root)", "main");
 
-    std::cout << "Now calculating the first 15 Fibonacci numbers:" << std::endl;
+    std::cout << "\033[7m" << "Now calculating the first 15 Fibonacci numbers:" << "\033[0m" << std::endl;
     for (int i = 0; i < 10; i++)
         std::cout << fib(i) << std::endl;
-    std::cout << "Now doing MatDemoTest" << std::endl;
+
+    std::cout << "\033[7m" << "Now doing MatDemoTest" << "\033[0m" << std::endl;
 
     //获取参数
     ArgumentReader ar;
@@ -36,8 +38,8 @@ int main() {
     ar.AddArg("matrix_type");
     ar.AddArg("matrix_print");
     ar.AddArg("calculation");
-    string wd=std::filesystem::current_path().string();
-    ifstream fs(wd+"/input.txt");
+    string wd = std::filesystem::current_path().string();
+    ifstream fs(wd + "/input.txt");
     ar.ReadArgs(fs);
     fs.close();
 
@@ -57,15 +59,15 @@ int main() {
         return 1;
     }
     //行数列数
-    int ncols= stoi(ar.GetArgV("ncols"));
-    int nrows= stoi(ar.GetArgV("nrows"));
+    int ncols = stoi(ar.GetArgV("ncols"));
+    int nrows = stoi(ar.GetArgV("nrows"));
 
     Mat_Demo m1(nrows, ncols, matrixType);
 
     //根据给定的操作进行计算
-    cout<<"calculation: ";
-    string  cal = ar.GetArgV("calculation");
-    cout<<cal<<endl;
+    cout << "calculation: ";
+    string cal = ar.GetArgV("calculation");
+    cout << cal << endl;
     if (cal == "max") {
         cout << m1.mmax() << endl;
     } else if (cal == "min") {
@@ -87,7 +89,7 @@ int main() {
         return 1;
     }
 
-    HwaUtil::Timer::tock("HwaUtil::main", "main");
+    HwaUtil::Timer::tock("HwaUtil::(root)", "main");
     HwaUtil::Timer::print_time_usage(std::cout);
     return 0;
 }
