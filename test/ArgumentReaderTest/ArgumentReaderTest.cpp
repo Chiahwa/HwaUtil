@@ -13,8 +13,8 @@ int main() {
     argReader.AddArg("nrows");
     argReader.AddArg("ncols");
 
-    string wd=std::filesystem::current_path().string();
-    ifstream fs(wd+"/input.txt");
+
+    ifstream fs("/input.txt");
 
     argReader.ReadArgs(fs);
 
