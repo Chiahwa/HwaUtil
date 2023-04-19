@@ -38,8 +38,8 @@ int main() {
     ar.AddArg("matrix_type");
     ar.AddArg("matrix_print");
     ar.AddArg("calculation");
-    string wd = std::filesystem::current_path().string();
-    ifstream fs(wd + "/input.txt");
+
+    ifstream fs("input.txt");
     ar.ReadArgs(fs);
     fs.close();
 

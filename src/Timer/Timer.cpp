@@ -11,7 +11,7 @@
 namespace HwaUtil {
 
     // initialize static variables
-    auto Timer::program_start_time = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point<std::chrono::high_resolution_clock> Timer::program_start_time = std::chrono::high_resolution_clock::now();
     std::unordered_map<std::string, Timer::FuncTimeInfo> Timer::func_time_info;
 
     void Timer::tick(const std::string &class_name, const std::string &function_name) {
