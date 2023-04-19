@@ -14,7 +14,7 @@ int main() {
     argReader.AddArg("ncols");
 
 
-    ifstream fs("/input.txt");
+    ifstream fs("input.txt");
 
     argReader.ReadArgs(fs);
 
