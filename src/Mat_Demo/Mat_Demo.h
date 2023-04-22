@@ -13,11 +13,11 @@ namespace HwaUtil{
         enum class MatrixType {
             Zero,
             Identity,
-            Random,
-            User
+            Random
         };
         Mat_Demo();
-        Mat_Demo(int nr, int nc, MatrixType initType = MatrixType::Zero, std::istream &is= std::cin);
+        Mat_Demo(int nr, int nc, MatrixType initType = MatrixType::Zero);
+        Mat_Demo(std::istream &is);
         ~Mat_Demo();
 
         //functions to get the number of rows and columns.
@@ -65,6 +65,8 @@ namespace HwaUtil{
         //holds data for the matrix.
         double *d = nullptr;
     };
+
+    void ReadMatrix(std::istream &is, Mat_Demo &m);
 }
 
 #endif //HWAUTIL_MAT_DEMO_H

@@ -5,6 +5,7 @@
 #include "Mat_Demo.h"
 #include <cmath>
 #include <iostream>
+#include <sstream>
 #include <algorithm>
 #include <cstdlib>
 #if defined(__APPLE__) || defined(__MACOSX)
@@ -23,7 +24,7 @@ HwaUtil::Mat_Demo::Mat_Demo() {
 }
 
 //constructor with initialization.
-HwaUtil::Mat_Demo::Mat_Demo(int nr, int nc, MatrixType initType, std::istream &is) {
+HwaUtil::Mat_Demo::Mat_Demo(int nr, int nc, MatrixType initType) {
     Timer::tick("HwaUtil::Mat_Demo","()");
     nrows = nr;
     ncols = nc;
@@ -43,11 +44,7 @@ HwaUtil::Mat_Demo::Mat_Demo(int nr, int nc, MatrixType initType, std::istream &i
                 d[i] = rand() / (double) RAND_MAX;
             }
             break;
-        case MatrixType::User:
-            for (int i = 0; i < nrows * ncols; i++) {
-                is >> d[i];
-            }
-            break;
+
     }
     Timer::tock("HwaUtil::Mat_Demo","()");
 }
@@ -288,5 +285,64 @@ int HwaUtil::Mat_Demo::lapack_eig(double *eigval, double *eigvec) {
     }
     Timer::tock("HwaUtil::Mat_Demo","lapack_eig");
     return 1;
+}
+
+HwaUtil::Mat_Demo::Mat_Demo(std::istream &is) {
+    Timer::tick("HwaUtil::Mat_Demo", "(istream)");
+    constexpr auto max_size = std::numeric_limits<std::streamsize>::max();
+    std::string line;
+    bool ncolget= false, nrowget=false,typeget=false, vallabelget=false;
+    while (std::getline(is,line)){
+        std::stringstream buf(line);
+        getline(buf, line, '#');
+        std::stringstream ssline(line);
+
+        std::string name;
+        ssline >> name;
+        if (ssline.fail()) {
+            continue;
+        }
+        transform(name.begin(), name.end(), name.begin(), ::tolower);
+        name=name.substr(0,name.find(':'));
+        if(name=="value"){
+            vallabelget=true;
+            if(ncolget&&nrowget&&typeget){
+                break;
+            } else{
+                Timer::tock("HwaUtil::Mat_Demo", "(istream)");
+                throw std::runtime_error("Missing argument!");
+            }
+        }
+        std::string val;
+        ssline >> val;
+        if (ssline.fail()) {
+            Timer::tock("HwaUtil::Mat_Demo", "(istream)");
+            throw std::runtime_error("Value of argument " + name + " missing!");
+        }
+        transform(val.begin(), val.end(), val.begin(), ::tolower);
+        if (name == "nrows") {
+            nrows = std::stoi(val);
+            nrowget=true;
+        } else if (name == "ncols") {
+            ncols = std::stoi(val);
+            ncolget=true;
+        } else if (name == "type") {
+            //TODO: construct according to specified type
+            typeget=true;
+        } else {
+            Timer::tock("HwaUtil::Mat_Demo", "(istream)");
+            throw std::runtime_error("Unknown argument: " + name);
+        }
+    }
+    if(!vallabelget){
+        Timer::tock("HwaUtil::Mat_Demo", "(istream)");
+        throw std::runtime_error("Missing \"value\" label!");
+    }
+    d = new double[nrows * ncols]; //assert: no comment in the middle of the matrix
+    for (int i = 0; i < nrows * ncols; i++) {
+        is >> d[i];
+        is.ignore(max_size,',');
+    }
+    Timer::tock("HwaUtil::Mat_Demo", "(istream)");
 }
 

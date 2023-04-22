@@ -52,8 +52,6 @@ int main() {
         matrixType = Mat_Demo::MatrixType::Identity;
     } else if (typestr == "random") {
         matrixType = Mat_Demo::MatrixType::Random;
-    } else if (typestr == "user") {
-        matrixType = Mat_Demo::MatrixType::User;
     } else {
         cout << "Invalid matrix type" << endl;
         return 1;
@@ -62,7 +60,7 @@ int main() {
     int ncols = stoi(ar.GetArgV("ncols"));
     int nrows = stoi(ar.GetArgV("nrows"));
 
-    Mat_Demo m1(nrows, ncols, matrixType, cin);
+    Mat_Demo m1(nrows, ncols, matrixType);
 
     //根据给定的操作进行计算
     cout << "calculation: ";

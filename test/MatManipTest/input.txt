@@ -2,5 +2,5 @@ calculation matmul
 result_print 1
 timer_print 1
 input_type file
-data_path mat_1.txt|mat_2.txt
+data_path matmul/case_1/mat_1.txt|matmul/case_1/mat_2.txt
 

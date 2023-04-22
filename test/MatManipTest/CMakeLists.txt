@@ -12,3 +12,9 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin/${PROG_NAME})
 
 # test file
 configure_file(input.txt ${EXECUTABLE_OUTPUT_PATH}/input.txt COPYONLY)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/matmul")
+execute_process(COMMAND ${CMAKE_COMMAND} -E
+        copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/matmul"
+        "${EXECUTABLE_OUTPUT_PATH}/matmul"
+        )
