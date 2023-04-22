@@ -39,7 +39,7 @@ int main() {
     ar.AddArg("matrix_print");
     ar.AddArg("calculation");
 
-    ifstream fs("input.txt");
+    ifstream fs("matmul5.txt");
     ar.ReadArgs(fs);
     fs.close();
 

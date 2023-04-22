@@ -264,6 +264,7 @@ int HwaUtil::Mat_Demo::lapack_eig(double *eigval, double *eigvec) {
     Timer::tick("HwaUtil::Mat_Demo","lapack_eig");
     if (!is_real_symm()) {
         Timer::tock("HwaUtil::Mat_Demo","lapack_eig");
+        std::cerr<<"Error: Mat_Demo::lapack_eig: matrix is not real symmetric"<<std::endl;
         return 0;
     }
     int info=0;
@@ -271,7 +272,7 @@ int HwaUtil::Mat_Demo::lapack_eig(double *eigval, double *eigvec) {
     double *work = new double[lwork];
 #if defined(__APPLE__)||defined(__MACOSX)
     dsyev_("V", "U", &nrows, d, &nrows, eigval, work, &lwork, &info);
-#else
+#else if defined(__linux__)
     info=LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', nrows, d, nrows, eigval);
 #endif
     if (info != 0) {
@@ -339,9 +340,12 @@ HwaUtil::Mat_Demo::Mat_Demo(std::istream &is) {
         throw std::runtime_error("Missing \"value\" label!");
     }
     d = new double[nrows * ncols]; //assert: no comment in the middle of the matrix
+
     for (int i = 0; i < nrows * ncols; i++) {
+        while(!isdigit(is.peek())&&is.peek()!='-'&&is.peek()!='.'){
+            is.ignore();
+        }
         is >> d[i];
-        is.ignore(max_size,',');
     }
     Timer::tock("HwaUtil::Mat_Demo", "(istream)");
 }

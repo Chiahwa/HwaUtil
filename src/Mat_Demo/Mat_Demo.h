@@ -17,7 +17,7 @@ namespace HwaUtil{
         };
         Mat_Demo();
         Mat_Demo(int nr, int nc, MatrixType initType = MatrixType::Zero);
-        Mat_Demo(std::istream &is);
+        explicit Mat_Demo(std::istream &is);
         ~Mat_Demo();
 
         //functions to get the number of rows and columns.
@@ -46,7 +46,7 @@ namespace HwaUtil{
 
         int is_real_symm() const; //check if the matrix is real symmetric matrix(1) or not(0).
 
-        int lapack_eig(double *eigval, double *eigvec); //using LAPACK to calculate eigenvalues and eigenvectors, RSM assumed.
+        int lapack_eig(double *eigval, double *eigvec); //using LAPACK to calculate eigenvalues and eigenvectors, RSM assumed.Return 1 if success.
 
 
         Mat_Demo &operator =(const Mat_Demo &a);
