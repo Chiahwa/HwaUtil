@@ -6,6 +6,13 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <cstdlib>
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <Accelerate/Accelerate.h>
+#elif defined(__linux__)
+#include <cblas.h>
+#include <lapacke.h>
+#endif
 #include "Timer/Timer.h"
 
 //default constructor.
@@ -16,7 +23,7 @@ HwaUtil::Mat_Demo::Mat_Demo() {
 }
 
 //constructor with initialization.
-HwaUtil::Mat_Demo::Mat_Demo(const int nr, const int nc, const HwaUtil::Mat_Demo::MatrixType initType) {
+HwaUtil::Mat_Demo::Mat_Demo(int nr, int nc, MatrixType initType, std::istream &is) {
     Timer::tick("HwaUtil::Mat_Demo","()");
     nrows = nr;
     ncols = nc;
@@ -37,6 +44,9 @@ HwaUtil::Mat_Demo::Mat_Demo(const int nr, const int nc, const HwaUtil::Mat_Demo:
             }
             break;
         case MatrixType::User:
+            for (int i = 0; i < nrows * ncols; i++) {
+                is >> d[i];
+            }
             break;
     }
     Timer::tock("HwaUtil::Mat_Demo","()");
@@ -199,5 +209,84 @@ std::ostream &HwaUtil::operator<<(std::ostream &os, const HwaUtil::Mat_Demo &m) 
     }
     Timer::tock("HwaUtil::(root)","operator<<(Mat_Demo)");
     return os;
+}
+
+HwaUtil::Mat_Demo &HwaUtil::Mat_Demo::operator*(const HwaUtil::Mat_Demo &a) {
+    Timer::tick("HwaUtil::Mat_Demo","operator*");
+    if (ncols != a.nrows) {
+        Timer::tock("HwaUtil::Mat_Demo","operator*");
+        throw std::runtime_error("Error: Mat_Demo::operator*: matrix size mismatch");
+    }
+    auto *m = new HwaUtil::Mat_Demo(nrows, a.ncols, MatrixType::Zero);
+    for (int i = 0; i < nrows; i++) {
+        for (int j = 0; j < a.ncols; j++) {
+            for (int k = 0; k < ncols; k++) {
+                (*m)(i, j) += (*this)(i, k) * a(k, j);
+            }
+        }
+    }
+    Timer::tock("HwaUtil::Mat_Demo","operator*");
+    return *m;
+}
+
+int HwaUtil::Mat_Demo::is_real_symm() const {
+    Timer::tick("HwaUtil::Mat_Demo","is_real_symm");
+    if (nrows != ncols) {
+        Timer::tock("HwaUtil::Mat_Demo","is_real_symm");
+        return 0;
+    }
+    for (int i = 0; i < nrows; i++) {
+        for (int j = 0; j < i; j++) {
+            if (std::abs((*this)(i, j) - (*this)(j, i)) > 1e-10) {
+                Timer::tock("HwaUtil::Mat_Demo","is_real_symm");
+                return 0;
+            }
+        }
+    }
+    Timer::tock("HwaUtil::Mat_Demo","is_real_symm");
+    return 1;
+}
+
+HwaUtil::Mat_Demo HwaUtil::Mat_Demo::blas_mult(const HwaUtil::Mat_Demo &a) {
+    Timer::tick("HwaUtil::Mat_Demo","blas_mult");
+    if (ncols != a.nrows) {
+        Timer::tock("HwaUtil::Mat_Demo","blas_mult");
+        throw std::runtime_error("Error: Mat_Demo::blas_mult: matrix size mismatch");
+    }
+    auto *m = new HwaUtil::Mat_Demo(nrows, a.ncols, MatrixType::Zero);
+    cblas_dgemm(CblasRowMajor,
+                CblasNoTrans,
+                CblasNoTrans,
+                nrows, a.ncols, ncols, 1.0, d, ncols, a.d, a.ncols,
+                0.0, m->d, a.ncols);
+    Timer::tock("HwaUtil::Mat_Demo","blas_mult");
+    return *m;
+}
+
+int HwaUtil::Mat_Demo::lapack_eig(double *eigval, double *eigvec) {
+    Timer::tick("HwaUtil::Mat_Demo","lapack_eig");
+    if (!is_real_symm()) {
+        Timer::tock("HwaUtil::Mat_Demo","lapack_eig");
+        return 0;
+    }
+    int info=0;
+    int lwork = 3 * nrows - 1;
+    double *work = new double[lwork];
+#if defined(__APPLE__)||defined(__MACOSX)
+    dsyev_("V", "U", &nrows, d, &nrows, eigval, work, &lwork, &info);
+#else
+    info=LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', nrows, d, nrows, eigval);
+#endif
+    if (info != 0) {
+        Timer::tock("HwaUtil::Mat_Demo","lapack_eig");
+        return 0;
+    }
+    for (int i = 0; i < nrows; i++) {
+        for (int j = 0; j < nrows; j++) {
+            eigvec[i * nrows + j] = d[i * nrows + j];
+        }
+    }
+    Timer::tock("HwaUtil::Mat_Demo","lapack_eig");
+    return 1;
 }
 

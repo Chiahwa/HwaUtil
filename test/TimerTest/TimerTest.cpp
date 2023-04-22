@@ -62,7 +62,7 @@ int main() {
     int ncols = stoi(ar.GetArgV("ncols"));
     int nrows = stoi(ar.GetArgV("nrows"));
 
-    Mat_Demo m1(nrows, ncols, matrixType);
+    Mat_Demo m1(nrows, ncols, matrixType, cin);
 
     //根据给定的操作进行计算
     cout << "calculation: ";

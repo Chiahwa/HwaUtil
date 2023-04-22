@@ -1,3 +1,4 @@
 add_subdirectory(TimerTest)
 add_subdirectory(ArgumentReaderTest)
 add_subdirectory(MatDemoTest)
+add_subdirectory(MatManipTest)

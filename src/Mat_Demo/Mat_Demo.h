@@ -17,11 +17,7 @@ namespace HwaUtil{
             User
         };
         Mat_Demo();
-        Mat_Demo(
-                int nr,
-                int nc,
-                MatrixType initType = MatrixType::Zero
-                );
+        Mat_Demo(int nr, int nc, MatrixType initType = MatrixType::Zero, std::istream &is= std::cin);
         ~Mat_Demo();
 
         //functions to get the number of rows and columns.
@@ -43,6 +39,15 @@ namespace HwaUtil{
         Mat_Demo &operator -=(const Mat_Demo &a);
         Mat_Demo &operator +(const Mat_Demo &a);
         Mat_Demo &operator -(const Mat_Demo &a);
+
+        //Matrix multiplication.
+        Mat_Demo &operator *(const Mat_Demo &a); //manual multiplication.
+        Mat_Demo blas_mult(const Mat_Demo &a); //using BLAS.
+
+        int is_real_symm() const; //check if the matrix is real symmetric matrix(1) or not(0).
+
+        int lapack_eig(double *eigval, double *eigvec); //using LAPACK to calculate eigenvalues and eigenvectors, RSM assumed.
+
 
         Mat_Demo &operator =(const Mat_Demo &a);
 
