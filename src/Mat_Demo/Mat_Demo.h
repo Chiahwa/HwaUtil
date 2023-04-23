@@ -66,7 +66,7 @@ namespace HwaUtil{
         double *d = nullptr;
     };
 
-    void ReadMatrix(std::istream &is, Mat_Demo &m);
+    //void ReadMatrix(std::istream &is, Mat_Demo &m);
 }
 
 #endif //HWAUTIL_MAT_DEMO_H
