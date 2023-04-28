@@ -8,6 +8,10 @@
 #include <unordered_map>
 #include <iomanip>
 
+#ifdef __MPI__
+#include <mpi.h>
+#endif
+
 namespace HwaUtil {
 
     // initialize static variables

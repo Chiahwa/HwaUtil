@@ -346,6 +346,10 @@ HwaUtil::Mat_Demo::Mat_Demo(std::istream &is) {
             is.ignore();
         }
         is >> d[i];
+        if(is.fail()){
+            Timer::tock("HwaUtil::Mat_Demo", "(istream)");
+            throw std::runtime_error("Error reading matrix value!");
+        }
     }
     Timer::tock("HwaUtil::Mat_Demo", "(istream)");
 }
