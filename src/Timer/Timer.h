@@ -57,6 +57,8 @@ namespace HwaUtil {
         // call this function at the end of a function
         static void tock(const std::string &class_name, const std::string &function_name);
         static std::ostream &print_time_usage(std::ostream &os = std::cout);
+
+        static std::chrono::nanoseconds func_time(const std::string &class_name, const std::string &function_name);
     };
 
 } // HwaUtil

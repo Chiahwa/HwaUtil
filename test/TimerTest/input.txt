@@ -4,4 +4,5 @@ matrix_type random  # xxxxx
 nrows 6
 ncols 6
 matrix_print 1 # xxxxx
+print_mpi_log 1 # xxx
 

@@ -78,6 +78,11 @@ namespace HwaUtil {
         func_time_info[func_name].tock();
     }
 
+    std::chrono::nanoseconds Timer::func_time(const std::string &class_name, const std::string &function_name) {
+        std::string func_name = class_name + "|||" + function_name;
+        return func_time_info[func_name].total_time();
+    }
+
     void Timer::FuncTimeInfo::tick() {
         if (!running_record.is_running()) {
             running_record.init();
