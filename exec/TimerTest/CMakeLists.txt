@@ -13,5 +13,6 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin/${PROG_NAME})
 configure_file(input.txt ${EXECUTABLE_OUTPUT_PATH}/input.txt COPYONLY)
 
 if ("${MPI}" STREQUAL on)
+    message(STATUS ${PROG_NAME} ": MPI is on")
     target_link_libraries(${PROG_NAME} ${MPI_LIBRARIES})
 endif ()

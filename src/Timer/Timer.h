@@ -21,9 +21,9 @@ namespace HwaUtil {
             unsigned long long n_recursion=0;
         public:
             // time at which top-level tick() was called
-            std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
+            double start_time;
             // time at which top-level tock() was called
-            std::chrono::time_point<std::chrono::high_resolution_clock> end_time;
+            double end_time;
 
             void init();
             bool is_running() const;
@@ -41,7 +41,7 @@ namespace HwaUtil {
             FuncTimeInfo():records(std::vector<TimerRecord>()){};
             void tick();
             void tock();
-            std::chrono::nanoseconds total_time();
+            double total_time();
             unsigned long long total_count();
         };
 
@@ -49,7 +49,7 @@ namespace HwaUtil {
         // map to store the time usage of each function
         static std::unordered_map<std::string, FuncTimeInfo> func_time_info;
         // time at which the program started
-        static std::chrono::time_point<std::chrono::high_resolution_clock> program_start_time;
+        static double program_start_time;
 
     public:
         // call this function at the beginning of a function
@@ -58,7 +58,8 @@ namespace HwaUtil {
         static void tock(const std::string &class_name, const std::string &function_name);
         static std::ostream &print_time_usage(std::ostream &os = std::cout);
 
-        static std::chrono::nanoseconds func_time(const std::string &class_name, const std::string &function_name);
+        static double func_time(const std::string &class_name, const std::string &function_name);
+        static void init();
     };
 
 } // HwaUtil

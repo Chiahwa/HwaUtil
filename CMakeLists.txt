@@ -28,5 +28,5 @@ endif ()
 add_executable(try tryanything.cpp)
 
 add_subdirectory(src)
-add_subdirectory(test)
+add_subdirectory(exec)
 

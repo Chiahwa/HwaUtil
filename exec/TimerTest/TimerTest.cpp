@@ -7,6 +7,7 @@
 #include "Mat_Demo/Mat_Demo.h"
 #include "ArgumentReader/ArgumentReader.h"
 #include <fstream>
+#include <filesystem>
 
 #ifdef __MPI__
 
@@ -26,6 +27,7 @@ long long fib(int n) {
     HwaUtil::Timer::tock("HwaUtil::(root)", "fib");
     return ans;
 }
+
 //TODO: Change back to serial version. This program doesn't need MPI implementation.
 int main(int argc, char *argv[]) {
 
@@ -38,7 +40,7 @@ int main(int argc, char *argv[]) {
     if (rank == 0)
         cout << "MPI enabled" << endl;
 #endif
-    HwaUtil::Timer::tick("HwaUtil::(root)", "TimerTest");
+    HwaUtil::Timer::init();
     HwaUtil::Timer::tick("HwaUtil::(root)", "main");
 
     /*
@@ -64,7 +66,8 @@ int main(int argc, char *argv[]) {
 #ifdef __MPI__
         auto print_mpi_log_str = ar.GetArgV("print_mpi_log");
         if (print_mpi_log_str == "1") {
-            os = new std::ofstream ("processor_" + to_string(rank) + ".log");
+            std::filesystem::create_directory("output");
+            os = new std::ofstream("output/processor_" + to_string(rank) + ".log");
         } else if (print_mpi_log_str == "0")
             os = nullptr;
         else {
@@ -72,69 +75,68 @@ int main(int argc, char *argv[]) {
             throw invalid_argument("Invalid print_mpi_log argument");
         }
 #endif
-    }
-    //获取矩阵初始化方式
-    auto typestr = ar.GetArgV("matrix_type");
-    Mat_Demo::MatrixType matrixType;
-    if (typestr == "zero") {
-        matrixType = Mat_Demo::MatrixType::Zero;
-    } else if (typestr == "identity") {
-        matrixType = Mat_Demo::MatrixType::Identity;
-    } else if (typestr == "random") {
-        matrixType = Mat_Demo::MatrixType::Random;
-    } else {
-        HwaUtil::Timer::tock("HwaUtil::(root)", "main");
-        throw invalid_argument("Invalid matrix type");
-    }
-    //行数列数
-    int ncols = stoi(ar.GetArgV("ncols"));
-    int nrows = stoi(ar.GetArgV("nrows"));
 
-    Mat_Demo m1(nrows, ncols, matrixType);
-
-    //根据给定的操作进行计算
-
-    string cal = ar.GetArgV("calculation");
-    double ans=0.0;
-    if(cal=="max") {
-        ans=m1.mmax();
-    } else if(cal=="min") {
-        ans=m1.mmin();
-    } else {
-        HwaUtil::Timer::tock("HwaUtil::(root)", "main");
-        throw invalid_argument("Invalid calculation");
-    }
-    if(os) {
-        (*os) << "calculation: " << cal << endl
-        <<ans<<endl;
-    }
-
-    //按需打印矩阵内容
-    string print = ar.GetArgV("matrix_print");
-    if(os) {
-        if (print == "1") {
-            (*os) << "Matrix printed:" << endl;
-            (*os) << m1 << endl;
-        } else if (print == "0") {
-            (*os) << "Matrix not printed" << endl;
+        //获取矩阵初始化方式
+        auto typestr = ar.GetArgV("matrix_type");
+        Mat_Demo::MatrixType matrixType;
+        if (typestr == "zero") {
+            matrixType = Mat_Demo::MatrixType::Zero;
+        } else if (typestr == "identity") {
+            matrixType = Mat_Demo::MatrixType::Identity;
+        } else if (typestr == "random") {
+            matrixType = Mat_Demo::MatrixType::Random;
         } else {
             HwaUtil::Timer::tock("HwaUtil::(root)", "main");
-            throw invalid_argument("Invalid argument matrix_print");
+            throw invalid_argument("Invalid matrix type");
+        }
+        //行数列数
+        int ncols = stoi(ar.GetArgV("ncols"));
+        int nrows = stoi(ar.GetArgV("nrows"));
+
+        Mat_Demo m1(nrows, ncols, matrixType);
+
+        //根据给定的操作进行计算
+
+        string cal = ar.GetArgV("calculation");
+        double ans = 0.0;
+        if (cal == "max") {
+            ans = m1.mmax();
+        } else if (cal == "min") {
+            ans = m1.mmin();
+        } else {
+            HwaUtil::Timer::tock("HwaUtil::(root)", "main");
+            throw invalid_argument("Invalid calculation");
+        }
+        if (os) {
+            (*os) << "calculation: " << cal << endl
+                  << ans << endl;
+        }
+
+        //按需打印矩阵内容
+        string print = ar.GetArgV("matrix_print");
+        if (os) {
+            if (print == "1") {
+                (*os) << "Matrix printed:" << endl;
+                (*os) << m1 << endl;
+            } else if (print == "0") {
+                (*os) << "Matrix not printed" << endl;
+            } else {
+                HwaUtil::Timer::tock("HwaUtil::(root)", "main");
+                throw invalid_argument("Invalid argument matrix_print");
+            }
         }
     }
-    HwaUtil::Timer::tock("HwaUtil::(root)", "main");
-    if(os)
-        HwaUtil::Timer::print_time_usage(*os);
 #ifdef __MPI__
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
-    HwaUtil::Timer::tock("HwaUtil::(root)","TimerTest");
-    if(rank==0){
-        cout<<"Time Elapsed: "<<((double)(HwaUtil::Timer::func_time("HwaUtil::(root)","TimerTest").count())
-                                *std::chrono::nanoseconds::period::num/std::chrono::nanoseconds::period::den)<<endl;
+    HwaUtil::Timer::tock("HwaUtil::(root)", "main");
+    if (rank == 0) {
+        cout << "Time Elapsed: " << (double) (HwaUtil::Timer::func_time("HwaUtil::(root)", "main")) << endl;
     }
+    if (os)
+        HwaUtil::Timer::print_time_usage(*os);
 #ifdef __MPI__
-    if(os) {
+    if (os) {
         ((fstream *) os)->close();
         delete os;
     }
