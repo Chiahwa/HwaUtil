@@ -30,7 +30,6 @@ long long fib(int n) {
 
 //TODO: Change back to serial version. This program doesn't need MPI implementation.
 int main(int argc, char *argv[]) {
-
     int rank = 0, size = 0;
     std::ostream *os = &std::cout;
 #ifdef __MPI__

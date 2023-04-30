@@ -54,6 +54,7 @@ namespace HwaUtil{
         //access the matrix elements.
         double &operator()(int i, int j);
         const double &operator()(int i, int j) const;
+        double *get_ptr(int i, int j); //TODO:not safe.
 
         //print the matrix.
         friend std::ostream &operator <<(std::ostream &os, const Mat_Demo &m);

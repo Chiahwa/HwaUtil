@@ -1,6 +1,5 @@
-calculation rsmdiago
-result_print 1
+calculation mpi_transmit
 timer_print 1
 input_type file
-print_mpi_log 1
 data_path mat-32-16.txt
+print_mpi_log 1

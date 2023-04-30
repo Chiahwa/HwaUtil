@@ -354,3 +354,7 @@ HwaUtil::Mat_Demo::Mat_Demo(std::istream &is) {
     Timer::tock("HwaUtil::Mat_Demo", "(istream)");
 }
 
+double *HwaUtil::Mat_Demo::get_ptr(int i, int j) {
+    return d + i * ncols + j;
+}
+
