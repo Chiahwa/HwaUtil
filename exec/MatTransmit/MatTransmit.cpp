@@ -19,11 +19,12 @@ using namespace HwaUtil;
 
 #ifdef __MPI__
 
-int mpi_rank = 0, mpi_size = 0;
+
 Mat_Demo *global_mat = nullptr;
 double *data_recv;
 int nrow_start_current, nrow_end_current, ncol_start_current, ncol_end_current;
 int print_mpi_log, timer_print;
+int mpi_rank = 0, mpi_size = 0;
 
 void transmit_matrix() {
     HwaUtil::Timer::tick("HwaUtil::(MatTransmit)", "transmit_matrix");
@@ -69,8 +70,7 @@ void transmit_matrix() {
                 delete[] data_send;
             }
         }
-    }
-    else { //other processes receive matrix
+    } else { //other processes receive matrix
         MPI_Recv(&nrow_start_current, 1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&nrow_end_current, 1, MPI_INT, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&ncol_start_current, 1, MPI_INT, 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -130,7 +130,8 @@ void read_data(int argc, char **argv) {
                 fstream fss(data_path_str);
                 if (fss.fail()) {
                     HwaUtil::Timer::tock("HwaUtil::(MatTransmit)", "read_data");
-                    throw invalid_argument("Invalid data file path"); }
+                    throw invalid_argument("Invalid data file path");
+                }
                 cout << "Reading matrix from file:" << data_path_str << "..." << endl;
                 global_mat = new Mat_Demo(fss);
                 fss.close();
@@ -150,7 +151,7 @@ void read_data(int argc, char **argv) {
     HwaUtil::Timer::tock("HwaUtil::(MatTransmit)", "read_data");
 }
 
-void print_log(){
+void print_log() {
     HwaUtil::Timer::tick("HwaUtil::(MatTransmit)", "print_log");
     if (mpi_rank == 0) {
         filesystem::remove_all("output");
@@ -175,6 +176,7 @@ void print_log(){
     log_file.close();
     HwaUtil::Timer::tock("HwaUtil::(MatTransmit)", "print_log");
 }
+
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
@@ -182,7 +184,7 @@ int main(int argc, char *argv[]) {
 
     if (mpi_rank == 0) {
         cout << "MPI enabled" << endl;
-        cout << "MPI size: " << mpi_size << endl;
+        cout << "# of processors: " << mpi_size << endl;
     }
 
     HwaUtil::Timer::init();
@@ -198,9 +200,10 @@ int main(int argc, char *argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
     HwaUtil::Timer::tock("HwaUtil::(MatTransmit)", "main");
-    if(timer_print){
-        if(mpi_rank == 0)
-            cout<<"Time elapsed: "<<(double) (HwaUtil::Timer::func_time("HwaUtil::(MatTransmit)", "main"))<<"s"<<endl;
+    if (timer_print) {
+        if (mpi_rank == 0)
+            cout << "Time elapsed: " << (double) (HwaUtil::Timer::func_time("HwaUtil::(MatTransmit)", "main")) << "s"
+                 << endl;
         if (mpi_rank == 0) {
             filesystem::create_directory("output");
         }
@@ -214,11 +217,9 @@ int main(int argc, char *argv[]) {
     delete[] data_recv;
     delete global_mat;
     MPI_Finalize();
-
-    //throw std::runtime_error("MPI is not enabled at this compilation.");
-
     return 0;
 }
+
 #else
 int main(int argc, char *argv[]) {
     throw std::runtime_error("MPI is not enabled at this compilation.");

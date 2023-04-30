@@ -12,7 +12,6 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin/${PROG_NAME})
 # test file
 configure_file(input.txt ${EXECUTABLE_OUTPUT_PATH}/input.txt COPYONLY)
 configure_file(mat-32-16.txt ${EXECUTABLE_OUTPUT_PATH}/mat-32-16.txt COPYONLY)
-configure_file(mat_1.txt ${EXECUTABLE_OUTPUT_PATH}/mat_1.txt COPYONLY)
 
 if ("${MPI}" STREQUAL on)
     message(STATUS ${PROG_NAME} ": MPI is on")
