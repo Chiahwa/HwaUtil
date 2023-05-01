@@ -109,7 +109,7 @@ void read_data(int argc, char **argv) {
         ifstream fs(input_file_path);
         if (fs.fail())
             throw invalid_argument("Invalid input file path");
-        cout << "Reading argument file:" << input_file_path << "..." << endl;
+        cout << "Reading argument file: " << input_file_path << "..." << endl;
         ar.ReadArgs(fs);
         fs.close();
         calculation_str = ar.GetArgV("calculation");
@@ -132,7 +132,7 @@ void read_data(int argc, char **argv) {
                     HwaUtil::Timer::tock("HwaUtil::(MatTransmit)", "read_data");
                     throw invalid_argument("Invalid data file path");
                 }
-                cout << "Reading matrix from file:" << data_path_str << "..." << endl;
+                cout << "Reading matrix from file: " << data_path_str << "..." << endl;
                 global_mat = new Mat_Demo(fss);
                 fss.close();
             } else {
