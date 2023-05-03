@@ -31,7 +31,7 @@ namespace HwaUtil {
 #endif
         auto program_total_time = program_end_time - program_start_time;
 
-        os << "Program total time: " << program_total_time << " microseconds" << std::endl;
+        os << "Program total time: " << program_total_time << " seconds" << std::endl;
         const int w_class_name = 28, w_func_name = 28, w_time = 16, w_calls = 10, w_avg = 14, w_per = 13;
 
         os << std::left << std::setfill('-')
