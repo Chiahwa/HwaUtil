@@ -17,6 +17,7 @@ namespace HwaUtil{
         };
         Mat_Demo();
         Mat_Demo(int nr, int nc, MatrixType initType = MatrixType::Zero);
+        Mat_Demo(int nr, int nc, double *data);
         explicit Mat_Demo(std::istream &is);
         ~Mat_Demo();
 

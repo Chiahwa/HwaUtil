@@ -358,3 +358,14 @@ double *HwaUtil::Mat_Demo::get_ptr(int i, int j) {
     return d + i * ncols + j;
 }
 
+HwaUtil::Mat_Demo::Mat_Demo(int nr, int nc, double *data) {
+    Timer::tick("HwaUtil::Mat_Demo", "(nr,nc,data)");
+    nrows = nr;
+    ncols = nc;
+    d = new double[nrows * ncols];
+    if (data != nullptr) {
+        memcpy(d, data, nrows * ncols * sizeof(double));
+    }
+    Timer::tock("HwaUtil::Mat_Demo", "(nr,nc,data)");
+}
+

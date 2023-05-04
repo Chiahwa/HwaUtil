@@ -45,7 +45,10 @@ namespace HwaUtil {
                 Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
                 throw std::runtime_error("Value of argument " + name + " missing!");
             }
-            transform(val.begin(), val.end(), val.begin(), ::tolower);
+            if (val[0] == '$')
+                val.erase(val.begin());
+            else
+                transform(val.begin(), val.end(), val.begin(), ::tolower);
 
             if (!ArgID.contains(name)) {
                 Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
@@ -101,8 +104,7 @@ namespace HwaUtil {
         if (ID <= NArgs) {
             Timer::tock("HwaUtil::ArgumentReader", "GetArgV");
             return ArgVal[ID];
-        }
-        else {
+        } else {
             Timer::tock("HwaUtil::ArgumentReader", "GetArgV");
             throw std::out_of_range("GetArgV(ID): Argument ID out of range!");
         }
