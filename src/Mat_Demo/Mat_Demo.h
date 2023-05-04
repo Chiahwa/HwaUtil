@@ -34,16 +34,17 @@ namespace HwaUtil{
         void zero(int nr, int nc);
 
 
-        //Matrix multiplication.
+        //Matrix manipulation.
         Mat_Demo &operator *=(const double &a);
         Mat_Demo &operator +=(const Mat_Demo &a);
         Mat_Demo &operator -=(const Mat_Demo &a);
         Mat_Demo &operator +(const Mat_Demo &a);
         Mat_Demo &operator -(const Mat_Demo &a);
+        friend Mat_Demo &mat_add(const Mat_Demo &a, const Mat_Demo &b, double alpha, double beta);
 
         //Matrix multiplication.
         Mat_Demo &operator *(const Mat_Demo &a); //manual multiplication.
-        Mat_Demo blas_mult(const Mat_Demo &a); //using BLAS.
+        Mat_Demo &blas_mult(const Mat_Demo &a); //using BLAS.
 
         int is_real_symm() const; //check if the matrix is real symmetric matrix(1) or not(0).
 
@@ -55,7 +56,8 @@ namespace HwaUtil{
         //access the matrix elements.
         double &operator()(int i, int j);
         const double &operator()(int i, int j) const;
-        double *get_ptr(int i, int j); //TODO:not safe.
+        const double *get_ptr(int i, int j); //TODO:not safe.
+
 
         //print the matrix.
         friend std::ostream &operator <<(std::ostream &os, const Mat_Demo &m);
@@ -68,6 +70,7 @@ namespace HwaUtil{
         double *d = nullptr;
     };
 
+    Mat_Demo &mat_add(const HwaUtil::Mat_Demo &a, const HwaUtil::Mat_Demo &b, double alpha, double beta);
     //void ReadMatrix(std::istream &is, Mat_Demo &m);
 }
 

@@ -24,8 +24,12 @@ Mat_Demo *global_m1 = nullptr;
 Mat_Demo *global_m2 = nullptr;
 Mat_Demo *receive_m1 = nullptr;
 Mat_Demo *receive_m2 = nullptr;
-int nrow_start_current, nrow_end_current, ncol_start_current, ncol_end_current;
+Mat_Demo *blockresult = nullptr;
+Mat_Demo *globalresult = nullptr;
+int nrow_start_current, nrow_end_current, ncol_start_current, ncol_end_current, nrow_cur, ncol_cur;
 int print_mpi_log, timer_print;
+string output_to_file_str;
+double alpha, beta;
 int mpi_rank = 0, mpi_size = 0;
 
 void transmit_matrix(Mat_Demo *global_m, Mat_Demo *&receive_m) {
@@ -70,8 +74,8 @@ void transmit_matrix(Mat_Demo *global_m, Mat_Demo *&receive_m) {
                 MPI_Send(&ncol_end, 1, MPI_INT, i, 4, MPI_COMM_WORLD);
                 MPI_Send(data_send, n_send, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
 
-                MPI_Send(&print_mpi_log, 1, MPI_INT, i, 5, MPI_COMM_WORLD);
-                MPI_Send(&timer_print, 1, MPI_INT, i, 6, MPI_COMM_WORLD);
+                //MPI_Send(&print_mpi_log, 1, MPI_INT, i, 5, MPI_COMM_WORLD);
+                //MPI_Send(&timer_print, 1, MPI_INT, i, 6, MPI_COMM_WORLD);
                 delete[] data_send;
             }
         }
@@ -81,39 +85,35 @@ void transmit_matrix(Mat_Demo *global_m, Mat_Demo *&receive_m) {
         MPI_Recv(&ncol_start_current, 1, MPI_INT, 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&ncol_end_current, 1, MPI_INT, 0, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        MPI_Recv(&print_mpi_log, 1, MPI_INT, 0, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(&timer_print, 1, MPI_INT, 0, 6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        //MPI_Recv(&print_mpi_log, 1, MPI_INT, 0, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        //MPI_Recv(&timer_print, 1, MPI_INT, 0, 6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         int n_recv = (nrow_end_current - nrow_start_current) * (ncol_end_current - ncol_start_current);
         data_recv = new double[n_recv];
         MPI_Recv(data_recv, n_recv, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     }
-    int nrow_rec = nrow_end_current - nrow_start_current;
-    int ncol_rec = ncol_end_current - ncol_start_current;
-    receive_m = new Mat_Demo(nrow_rec, ncol_rec, data_recv);
+    nrow_cur = nrow_end_current - nrow_start_current;
+    ncol_cur = ncol_end_current - ncol_start_current;
+    receive_m = new Mat_Demo(nrow_cur, ncol_cur, data_recv);
     delete [] data_recv;
     HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "transmit_matrix");
 }
 
 void read_data(int argc, char **argv) {
     HwaUtil::Timer::tick("HwaUtil::(MPIAdd)", "read_data");
-    string print_mpi_log_str;
-    string calculation_str;
-    string input_type_str;
-    string timer_print_str;
-    string m1_path_str;
-    string m2_path_str;
 
     ArgumentReader ar;
     ar.AddArg("calculation");
-    ar.AddArg("timer_print");
     ar.AddArg("input_type");
     ar.AddArg("matrix_1");
     ar.AddArg("matrix_2");
-    ar.AddArg("output_to_file");
-    ar.AddArg("print_mpi_log");
     ar.AddArg("alpha");
     ar.AddArg("beta");
+
+    ar.AddArg("timer_print");
+    ar.AddArg("output_to_file");
+    ar.AddArg("print_mpi_log");
+
     //path for argument file
     string input_file_path;
     if (argc != 2)
@@ -126,15 +126,23 @@ void read_data(int argc, char **argv) {
     cout << "Reading argument file: " << input_file_path << "..." << endl;
     ar.ReadArgs(fs);
     fs.close();
-    calculation_str = ar.GetArgV("calculation");
-    input_type_str = ar.GetArgV("input_type");
-    timer_print_str = ar.GetArgV("timer_print");
-    print_mpi_log_str = ar.GetArgV("print_mpi_log");
-    m1_path_str = ar.GetArgV("matrix_1");
-    m2_path_str = ar.GetArgV("matrix_2");
+    string calculation_str = ar.GetArgV("calculation");
+    string input_type_str = ar.GetArgV("input_type");
+    string m1_path_str = ar.GetArgV("matrix_1");
+    string m2_path_str = ar.GetArgV("matrix_2");
+    string alpha_str=ar.GetArgV("alpha");
+    string beta_str=ar.GetArgV("beta");
+
+    string timer_print_str = ar.GetArgV("timer_print");
+    output_to_file_str = ar.GetArgV("output_to_file");
+    string print_mpi_log_str = ar.GetArgV("print_mpi_log");
+
 
     print_mpi_log = (print_mpi_log_str == "1") ? 1 : 0;
     timer_print = (timer_print_str == "1") ? 1 : 0;
+
+    alpha = stod(alpha_str);
+    beta = stod(beta_str);
 
     if (calculation_str == "matadd_mpi") {
         cout << "Calculation: matadd_mpi" << endl;
@@ -208,6 +216,50 @@ void print_read_log() {
     HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "print_read_log");
 }
 
+void bcast_args()
+{
+    HwaUtil::Timer::tick("HwaUtil::(MPIAdd)", "bcast_args");
+    int rootproc=0;
+    MPI_Bcast(&print_mpi_log, 1, MPI_INT, rootproc, MPI_COMM_WORLD);
+    MPI_Bcast(&timer_print, 1, MPI_INT, rootproc, MPI_COMM_WORLD);
+    MPI_Bcast(&alpha, 1, MPI_DOUBLE, rootproc, MPI_COMM_WORLD);
+    MPI_Bcast(&beta, 1, MPI_DOUBLE, rootproc, MPI_COMM_WORLD);
+    HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "bcast_args");
+}
+
+void transmit_back() {
+    HwaUtil::Timer::tick("HwaUtil::(MPIAdd)", "transmit_back");
+    if (mpi_rank == 0) {
+        cout << "Transmitting back result..." << endl;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    int rootproc = 0;
+    const double *send_buf = blockresult->get_ptr(0,0);
+    double *recv_buf;
+    int send_size = nrow_cur * ncol_cur;
+    int *recv_size=new int[mpi_size];
+    int *recv_displs=new int[mpi_size];
+    MPI_Gather(&send_size, 1, MPI_INT, recv_size, 1, MPI_INT, rootproc, MPI_COMM_WORLD);
+    if(mpi_rank==rootproc){
+        int total_size = 0;
+        for (int i = 0; i < mpi_size; ++i) {
+            recv_displs[i] = total_size;
+            total_size += recv_size[i];
+        }
+        if(total_size!=global_m1->nr()*global_m1->nc()||total_size!=global_m2->nr()*global_m2->nc()){
+            HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "transmit_back");
+            throw runtime_error("Matrix size error");
+        }
+        recv_buf = new double[total_size];
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Gatherv(send_buf, send_size, MPI_DOUBLE, recv_buf, recv_size, recv_displs, MPI_DOUBLE, rootproc, MPI_COMM_WORLD);
+
+    if(mpi_rank==rootproc)
+        globalresult = new Mat_Demo(global_m1->nr(), global_m1->nc(), recv_buf);
+    HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "transmit_back");
+}
+
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
@@ -222,16 +274,54 @@ int main(int argc, char *argv[]) {
     HwaUtil::Timer::tick("HwaUtil::(MPIAdd)", "main");
     // read argument file and matrix data.
     if (mpi_rank == 0)
+    {
         read_data(argc, argv);
+        if(global_m1->nr() != global_m2->nr() || global_m1->nc() != global_m2->nc())
+        {
+            throw invalid_argument("Matrix size not match");
+        }
+    }
     MPI_Barrier(MPI_COMM_WORLD);
 
+    // broadcast arguments
+    bcast_args();
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // divide and distribute
     transmit_matrix(global_m1, receive_m1);
     transmit_matrix(global_m2, receive_m2);
+    MPI_Barrier(MPI_COMM_WORLD);
     if (print_mpi_log) {
         print_read_log();
     }
 
+    // calculate
+    if (mpi_rank == 0) {
+        cout << "Calculating..." << endl;
+    }
+    blockresult = &HwaUtil::mat_add(*receive_m1, *receive_m2, alpha, beta);
     MPI_Barrier(MPI_COMM_WORLD);
+
+    // transmit back to processor 0
+    if (mpi_rank == 0) {
+        cout << "Transmitting result back..." << endl;
+    }
+    transmit_back();
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // print result
+    if(mpi_rank==0){
+        if(output_to_file_str != "0"){
+            ofstream output_file(output_to_file_str);
+            if(!output_file.is_open()){
+                throw runtime_error("Cannot open output file");
+            }
+            cout << "Writing result to file: " <<output_to_file_str<<"..." << endl;
+            output_file<<(*globalresult);
+            output_file.close();
+        }
+    }
+
     HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "main");
     if (timer_print) {
         if (mpi_rank == 0)
@@ -252,6 +342,8 @@ int main(int argc, char *argv[]) {
     delete global_m2;
     delete receive_m1;
     delete receive_m2;
+    delete globalresult;
+    delete blockresult;
     MPI_Finalize();
     return 0;
 }

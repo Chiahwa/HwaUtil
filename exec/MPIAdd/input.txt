@@ -1,11 +1,11 @@
 calculation matadd_mpi
 
 input_type file
-matrix_1 $matadd/case_1/mat_A.txt
-matrix_2 $matadd/case_1/mat_B.txt
+matrix_1 $matadd/case_4/mat_A.txt
+matrix_2 $matadd/case_4/mat_B.txt
 
-alpha 0.5
-beta 1.5
+alpha 1.5
+beta 1
 
 print_mpi_log 1
 timer_print 1
