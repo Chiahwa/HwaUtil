@@ -38,7 +38,6 @@ void transmit_matrix(Mat_Demo *global_m, Mat_Demo *&receive_m) {
     double *data_recv = nullptr;
     //transmit matrix
     if (mpi_rank == 0) { //send matrix & rank 0 receive matrix from itself
-        cout << "Transmitting matrix..." << endl;
         int nrow = global_m->nr();
         int ncol = global_m->nc();
         int nrow_per_proc = nrow / mpi_size;
@@ -95,7 +94,7 @@ void transmit_matrix(Mat_Demo *global_m, Mat_Demo *&receive_m) {
     nrow_cur = nrow_end_current - nrow_start_current;
     ncol_cur = ncol_end_current - ncol_start_current;
     receive_m = new Mat_Demo(nrow_cur, ncol_cur, data_recv);
-    delete [] data_recv;
+    delete[] data_recv;
     HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "transmit_matrix");
 }
 
@@ -130,8 +129,8 @@ void read_data(int argc, char **argv) {
     string input_type_str = ar.GetArgV("input_type");
     string m1_path_str = ar.GetArgV("matrix_1");
     string m2_path_str = ar.GetArgV("matrix_2");
-    string alpha_str=ar.GetArgV("alpha");
-    string beta_str=ar.GetArgV("beta");
+    string alpha_str = ar.GetArgV("alpha");
+    string beta_str = ar.GetArgV("beta");
 
     string timer_print_str = ar.GetArgV("timer_print");
     output_to_file_str = ar.GetArgV("output_to_file");
@@ -155,7 +154,7 @@ void read_data(int argc, char **argv) {
                 HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "read_data");
                 throw invalid_argument(m1_path_str + ": Invalid data file path");
             }
-            cout << "Reading matrix from file: " << m1_path_str << "..." << endl;
+            cout << "Reading matrix 1 from file: " << m1_path_str << "..." << endl;
             global_m1 = new Mat_Demo(fss);
             fss.close();
             fss.open(m2_path_str);
@@ -163,7 +162,7 @@ void read_data(int argc, char **argv) {
                 HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "read_data");
                 throw invalid_argument(m2_path_str + ": Invalid data file path");
             }
-            cout << "Reading matrix from file: " << m2_path_str << "..." << endl;
+            cout << "Reading matrix 2 from file: " << m2_path_str << "..." << endl;
             global_m2 = new Mat_Demo(fss);
             fss.close();
         } else {
@@ -196,30 +195,29 @@ void print_read_log() {
     log_file << "Block Matrix Size: " << nrow_end_current - nrow_start_current << " x "
              << ncol_end_current - ncol_start_current << endl;
     log_file << "Start Position: (" << nrow_start_current << ", " << ncol_start_current << ")" << endl;
-    log_file << "End Position: (" << nrow_end_current-1 << ", " << ncol_end_current-1 << ")" << endl;
+    log_file << "End Position: (" << nrow_end_current - 1 << ", " << ncol_end_current - 1 << ")" << endl;
     log_file << "Block Matrix Elements:" << endl;
     log_file << "Matrix_1--------------" << endl;
-    for (int i=0;i<receive_m1->nr();++i){
-        for (int j=0;j<receive_m1->nc();++j){
-            log_file<<(*receive_m1)(i,j)<<", ";
+    for (int i = 0; i < receive_m1->nr(); ++i) {
+        for (int j = 0; j < receive_m1->nc(); ++j) {
+            log_file << (*receive_m1)(i, j) << ", ";
         }
-        log_file<<endl;
+        log_file << endl;
     }
     log_file << "Matrix_2--------------" << endl;
-    for (int i=0;i<receive_m2->nr();++i){
-        for (int j=0;j<receive_m2->nc();++j){
-            log_file<<(*receive_m2)(i,j)<<", ";
+    for (int i = 0; i < receive_m2->nr(); ++i) {
+        for (int j = 0; j < receive_m2->nc(); ++j) {
+            log_file << (*receive_m2)(i, j) << ", ";
         }
-        log_file<<endl;
+        log_file << endl;
     }
     log_file.close();
     HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "print_read_log");
 }
 
-void bcast_args()
-{
+void bcast_args() {
     HwaUtil::Timer::tick("HwaUtil::(MPIAdd)", "bcast_args");
-    int rootproc=0;
+    int rootproc = 0;
     MPI_Bcast(&print_mpi_log, 1, MPI_INT, rootproc, MPI_COMM_WORLD);
     MPI_Bcast(&timer_print, 1, MPI_INT, rootproc, MPI_COMM_WORLD);
     MPI_Bcast(&alpha, 1, MPI_DOUBLE, rootproc, MPI_COMM_WORLD);
@@ -229,33 +227,31 @@ void bcast_args()
 
 void transmit_back() {
     HwaUtil::Timer::tick("HwaUtil::(MPIAdd)", "transmit_back");
-    if (mpi_rank == 0) {
-        cout << "Transmitting back result..." << endl;
-    }
     MPI_Barrier(MPI_COMM_WORLD);
     int rootproc = 0;
-    const double *send_buf = blockresult->get_ptr(0,0);
+    const double *send_buf = blockresult->get_ptr(0, 0);
     double *recv_buf;
     int send_size = nrow_cur * ncol_cur;
-    int *recv_size=new int[mpi_size];
-    int *recv_displs=new int[mpi_size];
+    int *recv_size = new int[mpi_size];
+    int *recv_displs = new int[mpi_size];
     MPI_Gather(&send_size, 1, MPI_INT, recv_size, 1, MPI_INT, rootproc, MPI_COMM_WORLD);
-    if(mpi_rank==rootproc){
+    if (mpi_rank == rootproc) {
         int total_size = 0;
         for (int i = 0; i < mpi_size; ++i) {
             recv_displs[i] = total_size;
             total_size += recv_size[i];
         }
-        if(total_size!=global_m1->nr()*global_m1->nc()||total_size!=global_m2->nr()*global_m2->nc()){
+        if (total_size != global_m1->nr() * global_m1->nc() || total_size != global_m2->nr() * global_m2->nc()) {
             HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "transmit_back");
             throw runtime_error("Matrix size error");
         }
         recv_buf = new double[total_size];
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Gatherv(send_buf, send_size, MPI_DOUBLE, recv_buf, recv_size, recv_displs, MPI_DOUBLE, rootproc, MPI_COMM_WORLD);
+    MPI_Gatherv(send_buf, send_size, MPI_DOUBLE, recv_buf, recv_size, recv_displs, MPI_DOUBLE, rootproc,
+                MPI_COMM_WORLD);
 
-    if(mpi_rank==rootproc)
+    if (mpi_rank == rootproc)
         globalresult = new Mat_Demo(global_m1->nr(), global_m1->nc(), recv_buf);
     HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "transmit_back");
 }
@@ -273,11 +269,9 @@ int main(int argc, char *argv[]) {
     HwaUtil::Timer::init();
     HwaUtil::Timer::tick("HwaUtil::(MPIAdd)", "main");
     // read argument file and matrix data.
-    if (mpi_rank == 0)
-    {
+    if (mpi_rank == 0) {
         read_data(argc, argv);
-        if(global_m1->nr() != global_m2->nr() || global_m1->nc() != global_m2->nc())
-        {
+        if (global_m1->nr() != global_m2->nr() || global_m1->nc() != global_m2->nc()) {
             throw invalid_argument("Matrix size not match");
         }
     }
@@ -288,7 +282,14 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // divide and distribute
+    if (mpi_rank == 0) {
+        cout << "Distributing matrix 1..." << endl;
+    }
     transmit_matrix(global_m1, receive_m1);
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (mpi_rank == 0) {
+        cout << "Distributing matrix 2..." << endl;
+    }
     transmit_matrix(global_m2, receive_m2);
     MPI_Barrier(MPI_COMM_WORLD);
     if (print_mpi_log) {
@@ -310,14 +311,14 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // print result
-    if(mpi_rank==0){
-        if(output_to_file_str != "0"){
+    if (mpi_rank == 0) {
+        if (output_to_file_str != "0") {
             ofstream output_file(output_to_file_str);
-            if(!output_file.is_open()){
+            if (!output_file.is_open()) {
                 throw runtime_error("Cannot open output file");
             }
-            cout << "Writing result to file: " <<output_to_file_str<<"..." << endl;
-            output_file<<(*globalresult);
+            cout << "Writing result to file: " << output_to_file_str << "..." << endl;
+            output_file << (*globalresult);
             output_file.close();
         }
     }
@@ -325,7 +326,10 @@ int main(int argc, char *argv[]) {
     HwaUtil::Timer::tock("HwaUtil::(MPIAdd)", "main");
     if (timer_print) {
         if (mpi_rank == 0)
-            cout << "Time elapsed: " << (double) (HwaUtil::Timer::func_time("HwaUtil::(MPIAdd)", "main")) << "s"
+            cout << "MPIAdd finished.\n"
+                    "--------------\n"
+                    "Time elapsed: "
+                 << (double) (HwaUtil::Timer::func_time("HwaUtil::(MPIAdd)", "main")) << "s"
                  << endl;
         if (mpi_rank == 0) {
             filesystem::create_directory("output");
