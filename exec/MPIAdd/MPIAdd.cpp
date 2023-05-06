@@ -315,7 +315,7 @@ int main(int argc, char *argv[]) {
         if (output_to_file_str != "0") {
             ofstream output_file(output_to_file_str);
             if (!output_file.is_open()) {
-                throw runtime_error("Cannot open output file");
+                throw runtime_error("Cannot open/create output file");
             }
             cout << "Writing result to file: " << output_to_file_str << "..." << endl;
             output_file << (*globalresult);
@@ -354,6 +354,6 @@ int main(int argc, char *argv[]) {
 
 #else
 int main(int argc, char *argv[]) {
-    throw std::runtime_error("MPI is not enabled at this compilation.");
+    throw std::runtime_error("MPI is not enabled in this compilation.");
 }
 #endif

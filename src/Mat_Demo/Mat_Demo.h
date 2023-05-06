@@ -70,8 +70,8 @@ namespace HwaUtil{
         double *d = nullptr;
     };
 
+    // Performs alpha * a + beta * b
     Mat_Demo &mat_add(const HwaUtil::Mat_Demo &a, const HwaUtil::Mat_Demo &b, double alpha, double beta);
-    //void ReadMatrix(std::istream &is, Mat_Demo &m);
 }
 
 #endif //HWAUTIL_MAT_DEMO_H
