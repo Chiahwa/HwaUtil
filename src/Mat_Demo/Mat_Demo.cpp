@@ -8,6 +8,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
 
 #if defined(__APPLE__) || defined(__MACOSX)
 
