@@ -77,8 +77,9 @@ namespace HwaUtil {
     }
 
     /* returns true if success */
-    bool ArgumentReader::AddArg(const string &name) {
+    bool ArgumentReader::AddArg(string name) {
         Timer::tick("HwaUtil::ArgumentReader", "AddArg");
+        transform(name.begin(), name.end(), name.begin(), ::tolower);
         if (ArgID.contains(name)) {
             Timer::tock("HwaUtil::ArgumentReader", "AddArg");
             return false;

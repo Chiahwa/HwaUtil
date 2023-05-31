@@ -22,7 +22,7 @@ namespace HwaUtil {
 
     public:
         explicit ArgumentReader();
-        bool AddArg(const string& name);
+        bool AddArg(string name);
         void ReadArgs(istream &is);
         string GetArgV(const string &name);
         string GetArgV(int ID);
