@@ -12,8 +12,6 @@
 
 
 namespace HwaUtil {
-    ArgumentReader::ArgumentReader() = default;
-
 
     void ArgumentReader::ReadArgs(istream &is) {
         Timer::tick("HwaUtil::ArgumentReader", "ReadArgs");
@@ -23,6 +21,9 @@ namespace HwaUtil {
             Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
             return;
         }
+
+        bool data_label_found = !DataLabel.empty();
+
         string line;
         int nline = 0;
         while (getline(is, line)) {
@@ -39,16 +40,8 @@ namespace HwaUtil {
                 continue;
             }
 
-            string val;
-            ssline >> val;
-            if (ssline.fail()) {
-                Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
-                throw std::runtime_error("Value of argument " + name + " missing!");
-            }
-            if (val[0] == '$')
-                val.erase(val.begin());
-            else
-                transform(val.begin(), val.end(), val.begin(), ::tolower);
+            if(data_label_found && name.rfind(DataLabel, 0) == 0)
+                break;
 
             if (!ArgID.contains(name)) {
                 Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
@@ -58,6 +51,18 @@ namespace HwaUtil {
                 Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
                 throw std::runtime_error("Argument " + name + " declared more than once!");
             }
+
+            string val;
+            ssline >> val;
+            if (ssline.fail()) {
+                Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
+                throw std::runtime_error("Value of argument " + name + " missing!");
+            }
+            /* data beginning with '$' is case-sensitive */
+            if (val[0] == '$')
+                val.erase(val.begin());
+            else
+                transform(val.begin(), val.end(), val.begin(), ::tolower);
 
             ArgVal[ArgID[name]] = val;
             //is.ignore(max_size, '\n');
@@ -118,6 +123,25 @@ namespace HwaUtil {
         }
         Timer::tock("HwaUtil::ArgumentReader", "operator<<");
         return os;
+    }
+
+    ArgumentReader::ArgumentReader() = default;
+
+    bool ArgumentReader::SetDataLabel(string label) {
+        Timer::tick("HwaUtil::ArgumentReader", "SetDataLabel");
+        transform(label.begin(),label.end(), label.begin(), ::tolower);
+        if (!label.empty()) {
+            label.erase(0, label.find_first_not_of(' '));
+            label.erase(label.find_last_not_of(' ') + 1);
+        }
+        if(ArgID.contains(label)) {
+            Timer::tock("HwaUtil::ArgumentReader", "SetDataLabel");
+            return false;
+        }else {
+            DataLabel=label;
+            Timer::tock("HwaUtil::ArgumentReader", "SetDataLabel");
+            return true;
+        }
     }
 
 

@@ -20,12 +20,16 @@ namespace HwaUtil {
         map<string,int> ArgID;
         map<int,string> ArgVal;
 
+        // after DataLabel(takes a whole line), all text is regarded as data, thus ArgumentReader stops.
+        string DataLabel;
     public:
-        explicit ArgumentReader();
+        ArgumentReader();
         bool AddArg(string name);
+        bool SetDataLabel(string label);
         void ReadArgs(istream &is);
         string GetArgV(const string &name);
         string GetArgV(int ID);
+
 
         friend ostream &operator <<(ostream &os, const ArgumentReader &ar);
 

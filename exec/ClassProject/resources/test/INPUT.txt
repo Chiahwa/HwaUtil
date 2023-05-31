@@ -9,6 +9,8 @@ support_SH 0
 diago_lib lapack
 support_Periodic_Boundary 0
 multi_parallel_strategies 0
+n_points 2
 points_path ./POINTS.txt
 v_path ./V.txt
-distribution_path ./Distribution.txt
+distribution_path ./Distribution.txt # Separate with ''|' for multiple distributions
+

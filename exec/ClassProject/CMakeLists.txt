@@ -1,6 +1,6 @@
 set(PROG_NAME ClassProject)
-aux_source_directory(. DIR_LIB_SRCS)
-add_executable(${PROG_NAME} ${DIR_LIB_SRCS})
+aux_source_directory(. SRC_LIST)
+add_executable(${PROG_NAME} ${SRC_LIST})
 target_link_libraries(${PROG_NAME} Mat_Demo ArgumentReader Timer)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
