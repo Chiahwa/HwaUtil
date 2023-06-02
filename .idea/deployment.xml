@@ -2,16 +2,17 @@
 <project version="4">
   <component name="PublishConfigData" autoUpload="Always" deleteMissingItems="true">
     <serverData>
-      <paths name="Remote Host (855b835d-640a-4ac8-997c-9339fc0c9366)">
+      <paths name="Remote Host (55eb48d1-47e2-47c8-80fd-2de5db46ec82)">
         <serverdata>
           <mappings>
-            <mapping deploy="/root/Projects/HwaUtil" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/tmp/tmp.WBNbfhpTkN" local="$PROJECT_DIR$" />
           </mappings>
           <excludedPaths>
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
-            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release_remote" />
-            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug_remote" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug_mpi" />
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug_bohrium_mpi" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug_bohrium" />
           </excludedPaths>
         </serverdata>
       </paths>

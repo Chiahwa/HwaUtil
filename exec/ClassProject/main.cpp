@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <filesystem>
 #include "ArgumentReader/ArgumentReader.h"
 #include "misc.h"
 
@@ -23,13 +24,13 @@ RadialFunc *f;
 Func3d V;
 
 
-void read_point(string points_path, Point *pts, int n=2) {
+void read_point(string points_path, Point *pts, int n = 2) {
     if (points_path[0] != '/')
         points_path = working_dir + points_path;
+    cout << "Reading points file: " << points_path << "..." << endl;
     ifstream fs(points_path);
     if (fs.fail())
         throw invalid_argument("Invalid points file path");
-    cout << "Reading points file:" << points_path << "..." << endl;
     pts = new Point[n];
     for (int i = 0; i < n; i++) {
         fs.ignore(256, '(');
@@ -43,10 +44,10 @@ void read_point(string points_path, Point *pts, int n=2) {
     fs.close();
 }
 
-void read_f(const string &path, RadialFunc *ff, int n = 1) {
+void read_f(const string &path, RadialFunc * &ff, int n = 1) {
     stringstream ss(path);
 
-    ff=new RadialFunc[n];
+    ff = new RadialFunc[n];
     for (int i = 0; i < n; i++) {
         string pathi;
         if (i < n - 1)
@@ -55,10 +56,11 @@ void read_f(const string &path, RadialFunc *ff, int n = 1) {
             getline(ss, pathi);
         if (pathi[0] != '/')
             pathi = working_dir + pathi;
+        cout << "Reading distribution functions file: " << pathi << "..." << endl;
         ifstream fs(pathi);
         if (fs.fail())
             throw invalid_argument("Invalid distribution functions file path");
-        cout << "Reading distribution functions file:" << pathi << "..." << endl;
+
         ArgumentReader ar;
         {
             ar.AddArg("cutoff");
@@ -78,7 +80,7 @@ void read_f(const string &path, RadialFunc *ff, int n = 1) {
         for (int j = 0; j < ff[l - 1].mesh; j++) {
             fs >> ff[l - 1].v[j];
             ff[l - 1].r[j] = ff[l - 1].dr * j;
-            if (fs.peek() == ',') fs.ignore();
+            fs.ignore(256, ',');
         }
     }
 }
@@ -86,10 +88,11 @@ void read_f(const string &path, RadialFunc *ff, int n = 1) {
 void read_V(string path, Func3d &funcV) {
     if (path[0] != '/')
         path = working_dir + path;
+    cout << "Reading function V file: " << path << "..." << endl;
     ifstream fs(path);
     if (fs.fail())
         throw invalid_argument("Invalid V file path");
-    cout << "Reading function V file:" << path << "..." << endl;
+
     ArgumentReader ar;
     {
         ar.AddArg("nx");
@@ -108,24 +111,24 @@ void read_V(string path, Func3d &funcV) {
     funcV.yrange[1] = ly;
     funcV.zrange[0] = 0;
     funcV.zrange[1] = lz;
-    funcV.dx = (funcV.xrange[1]-funcV.xrange[0]) / funcV.nx;
-    funcV.dy = (funcV.yrange[1]-funcV.yrange[0]) / funcV.ny;
-    funcV.dz = (funcV.zrange[1]-funcV.zrange[0]) / funcV.nz;
+    funcV.dx = (funcV.xrange[1] - funcV.xrange[0]) / funcV.nx;
+    funcV.dy = (funcV.yrange[1] - funcV.yrange[0]) / funcV.ny;
+    funcV.dz = (funcV.zrange[1] - funcV.zrange[0]) / funcV.nz;
     funcV.v = new double[funcV.nx * funcV.ny * funcV.nz];
     //TODO: optimize. use 1d array instead of 3d array
-    for (int i = 0; i < funcV.nx*funcV.ny*funcV.nz; i++)
+    for (int i = 0; i < funcV.nx * funcV.ny * funcV.nz; i++)
         fs >> funcV.v[i];
 
     fs.close();
-    funcV.x=new double[funcV.nx];
-    funcV.y=new double[funcV.ny];
-    funcV.z=new double[funcV.nz];
-    for(int i=0;i<funcV.nx;i++)
-        funcV.x[i]=funcV.xrange[0]+funcV.dx*i;
-    for(int i=0;i<funcV.ny;i++)
-        funcV.y[i]=funcV.yrange[0]+funcV.dy*i;
-    for(int i=0;i<funcV.nz;i++)
-        funcV.z[i]=funcV.zrange[0]+funcV.dz*i;
+    funcV.x = new double[funcV.nx];
+    funcV.y = new double[funcV.ny];
+    funcV.z = new double[funcV.nz];
+    for (int i = 0; i < funcV.nx; i++)
+        funcV.x[i] = funcV.xrange[0] + funcV.dx * i;
+    for (int i = 0; i < funcV.ny; i++)
+        funcV.y[i] = funcV.yrange[0] + funcV.dy * i;
+    for (int i = 0; i < funcV.nz; i++)
+        funcV.z[i] = funcV.zrange[0] + funcV.dz * i;
 
 }
 
@@ -133,7 +136,7 @@ void read_args(const string &input_file_path) {
     ifstream fs(input_file_path);
     if (fs.fail())
         throw invalid_argument("Invalid input file path");
-    cout << "Reading argument file:" << input_file_path << "..." << endl;
+    cout << "Reading argument file: " << input_file_path << "..." << endl;
     {//configure argument reader
         arguments.AddArg("lx");
         arguments.AddArg("ly");
@@ -160,7 +163,9 @@ void read_args(const string &input_file_path) {
 }
 
 int main(int argc, char **argv) {
-    cout << "Hello World!" << endl;
+    cout << "Hello World!\nCurrent working dir:" << endl;
+    working_dir = std::filesystem::current_path().string() + "/";
+    cout << working_dir << endl;
 
     /* (1) read arguments */
     string input_file_path; //path for argument file
@@ -168,8 +173,17 @@ int main(int argc, char **argv) {
         cout << "Please input the path of argument file: " << endl;
         getline(cin, input_file_path);
     } else input_file_path = argv[1];
+    /*
+    if (input_file_path[0] != '/') //relative path
+        working_dir = working_dir + input_file_path.substr(0, input_file_path.find_last_of('/')) + "/";
+    else    //absolute path
+     */
+
+    //change working dir to the dir of input file
     working_dir = input_file_path.substr(0, input_file_path.find_last_of('/')) + "/";
     read_args(input_file_path);
+
+    cout<<working_dir<<endl;
 
     /* (2) read points */
     n_points = stoi(arguments.GetArgV("n_points"));
@@ -187,6 +201,8 @@ int main(int argc, char **argv) {
     ny = V.ny;
     nz = V.nz;
 
+    cout<<f->evallinear(20)<<endl;
+    cout<<(*f)(20)<<endl;
 
     return 0;
 }
