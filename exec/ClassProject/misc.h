@@ -15,7 +15,7 @@ struct RadialFunc{
     double dr; //step size.
     int mesh; //number of mesh points.
 
-    double *r; //mesh points.
+    //double *r; //mesh points.
     double *v; //values of the radial function.
 
     /* use cubic spline interpolation to get the value of the radial function at rr */
@@ -47,12 +47,12 @@ struct Func3d{
     //double cutoff; //cutoff radius.
     //double dr; //step size.
     int nx,ny,nz; //number of mesh points on each dimension.
-    int xrange[2], yrange[2], zrange[2]; //range of mesh points on each dimension.
-    int dx,dy,dz; //step size on each dimension.
+    double xrange[2], yrange[2], zrange[2]; //range of mesh points on each dimension.
+    double dx,dy,dz; //step size on each dimension.
 
-    double *x; //mesh points.
-    double *y; //mesh points.
-    double *z; //mesh points.
+    //double *x; //mesh points.
+    //double *y; //mesh points.
+    //double *z; //mesh points.
     double *v; //values of the function.
 };
 
