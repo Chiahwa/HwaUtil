@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
         cout << "MPI initialized. # of processes: " << n_proc << endl;
     }
 #else
-    cout<<"MPI not enabled."<<endl;
+    cout << "MPI not enabled." << endl;
 #endif
     Timer::init();
     Timer::tick("HwaUtil::(ClassProject)", "main");
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
         H = new double[n_points * n_points];
     MPI_Reduce(h, H, n_points * n_points, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 #else
-    H=h;
+    H = h;
 #endif
     if (proc_rank == 0) {
         cout << "H:" << endl;
@@ -150,6 +150,7 @@ int main(int argc, char **argv) {
             auto *eigv = new double[n_points * n_points];
             mat->lapack_eig(eig,
                             eigv);
+            //pdsyevx_(n_points, H, eig, eigv);
 
             filesystem::create_directory(working_dir + "output");
             ofstream eig_file(working_dir + "output/eigenvalues.log");
@@ -180,7 +181,7 @@ int main(int argc, char **argv) {
 #ifdef __MPI__
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
-    string log_file_name = working_dir+"output/processor_" + to_string(proc_rank) + "_timer.log";
+    string log_file_name = working_dir + "output/processor_" + to_string(proc_rank) + "_timer.log";
     ofstream log_file(log_file_name);
     HwaUtil::Timer::print_time_usage(log_file);
     log_file.close();
@@ -249,7 +250,7 @@ void read_f(const string &path, RadialFunc *&ff, int n) {
         ff[l - 1].mesh = stoi(ar.GetArgV("mesh"));
 
         //ff[l - 1].r = new double[ff[l - 1].mesh];
-        ff[l - 1].v = new double[ff[l - 1].mesh];
+        ff[l - 1].v = new double[ff[l - 1].mesh + 10];
         for (int j = 0; j < ff[l - 1].mesh; j++) {
             fs >> ff[l - 1].v[j];
             //    ff[l - 1].r[j] = ff[l - 1].dr * j;
@@ -389,9 +390,9 @@ void broadcast() {
         MPI_Bcast(&f[i].mesh, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&f[i].dr, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         if (proc_rank != 0) {
-            f[i].v = new double[f[i].mesh];
+            f[i].v = new double[f[i].mesh + 10];
         }
-        MPI_Bcast(f[i].v, f[i].mesh, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        MPI_Bcast(f[i].v, f[i].mesh + 5, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     }
     Timer::tock("HwaUtil::(ClassProject)", "broadcast");
 }
@@ -407,26 +408,20 @@ void compute_H() {
     omp_set_num_threads(2);
 #endif
     double fff[2];
-    for (int i = nx_start; i < nx_end; i++) {
-        for (int j = 0; j < ny; j++) {
-            for (int k = 0; k < nz; k++) {
-                for (int l = 0; l < n_points; l++) {
+    for (int l = 0; l < n_points; l++) {
+        for (int i = nx_start; i < nx_end; i++) {
+            double xl = points[l].x - i * lx / nx;
+            for (int j = 0; j < ny; j++) {
+                double yl = points[l].y - j * ly / ny;
+                for (int k = 0; k < nz; k++) {
+                    double zl = points[l].z - k * lz / nz;
+                    fff[0] = (*f)(sqrt(xl * xl + yl * yl + zl * zl));
+                    if (fff[0] < 1e-50) continue;
                     for (int m = l; m < n_points; m++) {
-#ifdef __OPENMP__
-#pragma omp parallel
-                        {
-                            int id=omp_get_thread_num();
-                            if(id==0)   fff[id] = (*f)(sqrt(pow(points[l].x-i*lx/nx,2)+pow(points[l].y-j*ly/ny,2)+pow(points[l].z-k*lz/nz,2)));
-                            else        fff[id] = (*f)(sqrt(pow(points[m].x-i*lx/nx,2)+pow(points[m].y-j*ly/ny,2)+pow(points[m].z-k*lz/nz,2)));
-                        }
-
-#else
-                        fff[0] = (*f)(sqrt(pow(points[l].x - i * lx / nx, 2) + pow(points[l].y - j * ly / ny, 2) +
-                                           pow(points[l].z - k * lz / nz, 2)));
-                        if (fff[0] == 0) continue;
-                        fff[1] = (*f)(sqrt(pow(points[m].x - i * lx / nx, 2) + pow(points[m].y - j * ly / ny, 2) +
-                                           pow(points[m].z - k * lz / nz, 2)));
-#endif
+                        double xm = points[m].x - i * lx / nx;
+                        double ym = points[m].y - j * ly / ny;
+                        double zm = points[m].z - k * lz / nz;
+                        fff[1] = (*f)(sqrt(xm * xm + ym * ym + zm * zm));
                         h[l * n_points + m] += V.v[i * ny * nz + j * nz + k] * fff[0] * fff[1] * V.dx * V.dy * V.dz;
                     }
                 }

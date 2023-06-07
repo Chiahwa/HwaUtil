@@ -1,6 +1,0 @@
-calculation matmul
-result_print 1
-timer_print 1
-input_type file
-data_path matmul/case_2/mat_1.txt|matmul/case_2/mat_2.txt
-
