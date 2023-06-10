@@ -23,8 +23,8 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E
 if ("${MPI}" STREQUAL on)
     message(STATUS ${PROG_NAME} ": MPI is on")
     target_link_libraries(${PROG_NAME} ${MPI_LIBRARIES})
-    message(STATUS ${SCALAPACK_LIBRARIES})
-    target_link_libraries(${PROG_NAME} ${SCALAPACK_LIBRARIES})
+    # message(STATUS ${SCALAPACK_LIBRARIES})
+    # target_link_libraries(${PROG_NAME} ${SCALAPACK_LIBRARIES})
 endif ()
 
 # OpenMP

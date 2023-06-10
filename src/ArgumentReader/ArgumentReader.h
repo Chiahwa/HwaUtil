@@ -26,7 +26,7 @@ namespace HwaUtil {
         ArgumentReader();
         bool AddArg(string name);
         bool SetDataLabel(string label);
-        void ReadArgs(istream &is);
+        int ReadArgs(istream &is);
         string GetArgV(const string &name);
         string GetArgV(int ID);
 

@@ -13,13 +13,13 @@
 
 namespace HwaUtil {
 
-    void ArgumentReader::ReadArgs(istream &is) {
+    int ArgumentReader::ReadArgs(istream &is) {
         Timer::tick("HwaUtil::ArgumentReader", "ReadArgs");
         constexpr auto max_size = std::numeric_limits<std::streamsize>::max();
 
         if (NArgs == 0) {
             Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
-            return;
+            return 0;
         }
 
         bool data_label_found = !DataLabel.empty();
@@ -79,6 +79,7 @@ namespace HwaUtil {
                 throw std::runtime_error("Argument " + arg.first + " missing!");
             }
         Timer::tock("HwaUtil::ArgumentReader", "ReadArgs");
+        return nline;
     }
 
     /* returns true if success */

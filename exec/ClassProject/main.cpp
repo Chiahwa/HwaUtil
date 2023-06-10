@@ -37,11 +37,12 @@ int working_dir_len;
 
 double lx, ly, lz;
 int nx, ny, nz;
+int nx_per_proc, nx_first_proc, nx_this_proc;
 int n_points;
 int n_f;
 Point *points;
 RadialFunc *f;
-Func3d V;
+Func3d global_V, local_V;
 
 double *h;
 double *H;
@@ -54,9 +55,19 @@ void read_V(string path, Func3d &funcV);
 
 void read_args(const string &input_file_path);
 
+void compute_H();
+
+void diagonize();
+
+#ifdef __MPI__
+
 void broadcast();
 
-void compute_H();
+void gather_H();
+
+void synchronize();
+
+#endif
 
 int main(int argc, char **argv) {
 
@@ -99,87 +110,44 @@ int main(int argc, char **argv) {
         string distribution_path = arguments.GetArgV("distribution_path");
         read_f(distribution_path, f);
 
-        /* (4) read function V of space points */
+        /* (4) read function global_V of space points */
         string v_path = arguments.GetArgV("v_path");
-        read_V(v_path, V);
-        nx = V.nx;
-        ny = V.ny;
-        nz = V.nz;
+        read_V(v_path, global_V);
+        nx = global_V.nx;
+        ny = global_V.ny;
+        nz = global_V.nz;
 
     }
 
     /* (5) broadcast arguments */
 #ifdef __MPI__
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    synchronize();
     broadcast();
-    MPI_Barrier(MPI_COMM_WORLD);
+    synchronize();
 #endif
     /* (6) calculate integral */
     if (proc_rank == 0) cout << "Start calculating integral..." << endl;
 
     compute_H();
 
-    /* (7) reduce */
+    /* (7) gather H */
 #ifdef __MPI__
-    MPI_Barrier(MPI_COMM_WORLD);
-    if (proc_rank == 0)
-        H = new double[n_points * n_points];
-    MPI_Reduce(h, H, n_points * n_points, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    synchronize();
+    gather_H();
 #else
     H = h;
 #endif
-    if (proc_rank == 0) {
-        cout << "H:" << endl;
-        for (int i = 0; i < n_points; i++) {
-            for (int j = 0; j < n_points; j++) {
-                cout << H[i * n_points + j] << " ";
-            }
-            cout << endl;
-        }
-    }
-
 
     /* (8) diagonalize */
     if (proc_rank == 0) cout << "Diagonalizing..." << endl;
 
-    if (proc_rank == 0) {
-        if (arguments.GetArgV("diago_lib") == "lapack") {
-            auto *mat = new Mat_Demo(n_points, n_points, H);
-            auto *eig = new double[n_points];
-            auto *eigv = new double[n_points * n_points];
-            mat->lapack_eig(eig,
-                            eigv);
-            //pdsyevx_(n_points, H, eig, eigv);
-
-            filesystem::create_directory(working_dir + "output");
-            ofstream eig_file(working_dir + "output/eigenvalues.log");
-            ofstream eigv_file(working_dir + "output/eigenvectors.log");
-
-            eig_file << "Eigenvalues:" << endl;
-            for (int i = 0; i < n_points; i++) {
-                eig_file << eig[i] << " ";
-            }
-            eig_file << endl;
-            eigv_file << "Eigenvectors:" << endl;
-            for (int i = 0; i < n_points; i++) {
-                for (int j = 0; j < n_points; j++) {
-                    eigv_file << eigv[i * n_points + j] << " ";
-                }
-                eigv_file << endl;
-            }
-            eig_file.close();
-            eigv_file.close();
-            delete[] eig;
-            delete[] eigv;
-            delete mat;
-        }
-    }
+    diagonize();
 
     Timer::tock("HwaUtil::(ClassProject)", "main");
 
 #ifdef __MPI__
-    MPI_Barrier(MPI_COMM_WORLD);
+    synchronize();
 #endif
     string log_file_name = working_dir + "output/processor_" + to_string(proc_rank) + "_timer.log";
     ofstream log_file(log_file_name);
@@ -278,7 +246,7 @@ void read_V(string path, Func3d &funcV) {
         ar.AddArg("nz");
         ar.SetDataLabel("V");
     }
-    ar.ReadArgs(fs);
+    int nlines = ar.ReadArgs(fs);
 
     funcV.nx = stoi(ar.GetArgV("nx"));
     funcV.ny = stoi(ar.GetArgV("ny"));
@@ -293,10 +261,16 @@ void read_V(string path, Func3d &funcV) {
     funcV.dy = (funcV.yrange[1] - funcV.yrange[0]) / funcV.ny;
     funcV.dz = (funcV.zrange[1] - funcV.zrange[0]) / funcV.nz;
     funcV.v = new double[funcV.nx * funcV.ny * funcV.nz];
-    //TODO: optimize. use 1d array instead of 3d array
-    for (int i = 0; i < funcV.nx * funcV.ny * funcV.nz; i++)
-        fs >> funcV.v[i];
 
+    //stringstream buffer;
+    //buffer << fs.rdbuf();
+    //cout<<"buffer size: "<<buffer.str().size()<<endl;
+    //FILE *fp = fopen(path.c_str(), "r");
+    //for (int i = 0; i < nlines; i++)
+    //    fscanf(fp, "%*[^\n]\n");
+    for (int i = 0; i < funcV.nx * funcV.ny * funcV.nz; i++)
+        //fscanf(fp, "%lf,", &funcV.v[i]);
+        fs >> funcV.v[i];
     fs.close();
     Timer::tock("HwaUtil::(ClassProject)", "read_V");
 }
@@ -345,6 +319,7 @@ void broadcast() {
         working_dir_cstr = new char[working_dir_len + 1];
         strcpy(working_dir_cstr, working_dir.c_str());
     }
+
     MPI_Bcast(&n_points, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&nx, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&ny, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -355,12 +330,17 @@ void broadcast() {
     MPI_Bcast(&n_f, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&working_dir_len, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+    nx_per_proc = nx / n_proc;
+    nx_first_proc = nx - (n_proc - 1) * nx_per_proc;
+    nx_this_proc = proc_rank == 0 ? nx_first_proc : nx_per_proc;
+
     if (proc_rank != 0) {
         points = new Point[n_points];
         f = new RadialFunc[n_f];
-        V.v = new double[nx * ny * nz];
+        //global_V.v = new double[nx_this_proc * ny * nz];
         working_dir_cstr = new char[working_dir_len + 1];
     }
+    local_V.v = new double[nx_this_proc * ny * nz];
     MPI_Bcast(working_dir_cstr, working_dir_len + 1, MPI_CHAR, 0, MPI_COMM_WORLD);
     if (proc_rank != 0)
         working_dir = string(working_dir_cstr);
@@ -373,16 +353,25 @@ void broadcast() {
     }
 
     if (proc_rank == 0) cout << "Broadcasting function V..." << endl;
-    MPI_Bcast(V.xrange, 2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(V.yrange, 2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(V.zrange, 2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(V.v, nx * ny * nz, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&V.dx, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&V.dy, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&V.dz, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(global_V.xrange, 2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(global_V.yrange, 2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(global_V.zrange, 2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    //if(proc_rank==1) cout<<V.xrange[1]<<endl;
+
+    MPI_Bcast(&global_V.dx, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&global_V.dy, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&global_V.dz, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    int displ=(nx_first_proc-nx_per_proc)*ny*nz;
+
+    MPI_Scatter(global_V.v+displ, nx_per_proc * ny * nz, MPI_DOUBLE, local_V.v, nx_per_proc * ny * nz, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    if(proc_rank==0) {
+        memcpy(local_V.v,global_V.v,nx_first_proc*ny*nz*sizeof(double));
+        delete[] global_V.v;
+    }
+
+    synchronize();
+    //if(proc_rank==1) cout<<global_V.xrange[1]<<endl;
     if (proc_rank == 0) cout << "Broadcasting radial distribution functions..." << endl;
 
     for (int i = 0; i < n_f; i++) {
@@ -402,14 +391,16 @@ void broadcast() {
 void compute_H() {
     Timer::tick("HwaUtil::(ClassProject)", "compute_H");
     h = new double[n_points * n_points];
-    int nx_start = nx / n_proc * proc_rank;
-    int nx_end = nx / n_proc * (proc_rank + 1) > nx ? nx : nx / n_proc * (proc_rank + 1);
+    //int nx_start = nx / n_proc * proc_rank;
+    //int nx_end = nx / n_proc * (proc_rank + 1) > nx ? nx : nx / n_proc * (proc_rank + 1);
 #ifdef __OPENMP__
     omp_set_num_threads(2);
 #endif
     double fff[2];
+
     for (int l = 0; l < n_points; l++) {
-        for (int i = nx_start; i < nx_end; i++) {
+        for (int i0 = 0; i0 < nx_this_proc; i0++) {
+            int i = i0 + (proc_rank == 0 ? 0 : (proc_rank-1) * nx_per_proc + nx_first_proc);
             double xl = points[l].x - i * lx / nx;
             for (int j = 0; j < ny; j++) {
                 double yl = points[l].y - j * ly / ny;
@@ -422,7 +413,7 @@ void compute_H() {
                         double ym = points[m].y - j * ly / ny;
                         double zm = points[m].z - k * lz / nz;
                         fff[1] = (*f)(sqrt(xm * xm + ym * ym + zm * zm));
-                        h[l * n_points + m] += V.v[i * ny * nz + j * nz + k] * fff[0] * fff[1] * V.dx * V.dy * V.dz;
+                        h[l * n_points + m] += local_V.v[i0 * ny * nz + j * nz + k] * fff[0] * fff[1] * global_V.dx * global_V.dy * global_V.dz;
                     }
                 }
             }
@@ -436,3 +427,65 @@ void compute_H() {
     }
     Timer::tock("HwaUtil::(ClassProject)", "compute_H");
 }
+#ifdef __MPI__
+void gather_H() {
+    Timer::tick("HwaUtil::(ClassProject)", "gather_H");
+    if (proc_rank == 0)
+        H = new double[n_points * n_points];
+    MPI_Reduce(h, H, n_points * n_points, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    Timer::tock("HwaUtil::(ClassProject)", "gather_H");
+}
+#endif
+
+void diagonize() {
+    Timer::tick("HwaUtil::(ClassProject)", "diagonize");
+    if (proc_rank == 0) {
+        if (arguments.GetArgV("diago_lib") == "lapack") {
+            auto *mat = new Mat_Demo(n_points, n_points, H);
+            auto *eig = new double[n_points];
+            auto *eigv = new double[n_points * n_points];
+            mat->lapack_eig(eig,
+                            eigv);
+            //pdsyevx_(n_points, H, eig, eigv);
+            filesystem::remove_all(working_dir + "output");
+            filesystem::create_directory(working_dir + "output");
+            ofstream eig_file(working_dir + "output/eigenvalues.log");
+            ofstream eigv_file(working_dir + "output/eigenvectors.log");
+            ofstream mat_file(working_dir + "output/H.log");
+
+            eig_file << "Eigenvalues:" << endl;
+            for (int i = 0; i < n_points; i++) {
+                eig_file <<setw(14)<< eig[i] << endl;
+            }
+            eigv_file << "Eigenvectors:" << endl;
+            for (int i = 0; i < n_points; i++) {
+                for (int j = 0; j < n_points; j++) {
+                    eigv_file << setw(14)<< eigv[i * n_points + j];
+                }
+                eigv_file << endl;
+            }
+            mat_file << "H:" << endl;
+
+            for (int i = 0; i < n_points; i++) {
+                for (int j = 0; j < n_points; j++) {
+                    mat_file << setw(14)<<H[i * n_points + j] ;
+                }
+                mat_file << endl;
+            }
+            eig_file.close();
+            eigv_file.close();
+            mat_file.close();
+            delete[] eig;
+            delete[] eigv;
+            delete mat;
+        }
+    }
+    Timer::tock("HwaUtil::(ClassProject)", "diagonize");
+}
+#ifdef __MPI__
+void synchronize() {
+    Timer::tick("HwaUtil::(ClassProject)", "synchronize");
+    MPI_Barrier(MPI_COMM_WORLD);
+    Timer::tock("HwaUtil::(ClassProject)", "synchronize");
+}
+#endif
