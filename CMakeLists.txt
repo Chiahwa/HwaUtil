@@ -33,7 +33,7 @@ if ("${MPI}" STREQUAL on)
     target_link_libraries(try ${MPI_LIBRARIES})
 
     if ("${SCALAPACK}" STREQUAL on)
-        find_library(SCALAPACK_LIB scalapack)
+        find_library(SCALAPACK_LIB scalapack REQUIRED)
 
         if (SCALAPACK_LIB)
             message(STATUS "SCALAPACK_LIB: ${SCALAPACK_LIB}")
