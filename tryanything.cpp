@@ -107,10 +107,12 @@ int main(int argc, char **argv) {
     // 设置描述符desca
     int info_1;
     descinit_(desca, &n, &n, &num_procs, &n, &ia, &ja, &blacs_context, &n, &info_1);
+    std::cout<< "desca: " << desca << std::endl;
 
     // 设置描述符descz
     int info_2;
     descinit_(descz, &n, &n, &num_procs, &n, &ia, &ja, &blacs_context, &n, &info_2);
+    std::cout<< "descz: " << descz << std::endl;
 
     // 计算工作数组长度
     // 设置初始值
@@ -121,9 +123,15 @@ int main(int argc, char **argv) {
     pdsyevx_(&jobz, &range, &uplo, &n, a.data(), &ia, &ja, desca, &vl, &vu, &il, &iu, &abstol, &m, w.data(), z.data(),
              &ia, &ja, descz, nullptr, &lwork, nullptr, &liwork, nullptr, &info);
 
+    MPI_Barrier(MPI_COMM_WORLD);
     // 获取所需的工作数组的最优长度
     lwork = static_cast<int>(w[0]);
     liwork = static_cast<int>(z[0]);
+
+    if (my_rank == 0) {
+        std::cout << "lwork: " << lwork << std::endl;
+        std::cout << "liwork: " << liwork << std::endl;
+    }
 
     // 根据返回的长度重新分配工作数组
     std::vector<double> work(lwork);
