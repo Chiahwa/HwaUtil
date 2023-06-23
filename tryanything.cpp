@@ -96,7 +96,10 @@ int main(int argc, char **argv) {
 
     if (my_rank == 0) {
         std::cout << "Grid size: " << np_row << " x " << np_col << std::endl;
+
     }
+
+    std::cout<<"My rank: "<< my_rank << ", myrow: " << my_row << ", mycol: " << my_col << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
 
