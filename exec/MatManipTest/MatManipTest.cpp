@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
         int n=m1->nc();
         double *eigval = new double[n];
         double *eigvec = new double[n*n];
-        if(m1->lapack_eig(eigval, eigvec))
+        if(m1->lapack_eig(eigval, eigvec)==0)
         {
             if(result_print_str == "1") {
                 cout<<R"(Writing eigenvalues and eigenvectors to files "eig.txt" and "eigvec.txt"...)"<<endl;

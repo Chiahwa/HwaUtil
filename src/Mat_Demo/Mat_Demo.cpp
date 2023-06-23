@@ -9,14 +9,42 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 
 #if defined(__APPLE__) || defined(__MACOSX)
 
 #include <Accelerate/Accelerate.h>
 
 #elif defined(__linux__)
+
 #include <cblas.h>
 #include <lapacke.h>
+
+#endif
+
+#ifdef __SCALAPACK__
+
+#include <mpi.h>
+
+extern "C" {
+// PDSYEVD function declaration
+void pdsyevd_(char *jobz, char *uplo, int *n, double *a, int *ia, int *ja, int *desca, double *w, double *z, int *iz,
+              int *jz, int *descz, double *work, int *lwork, int *iwork, int *liwork, int *info);
+
+// CBLACS functions
+void Cblacs_pinfo(int *myrank, int *nprocs);
+void Cblacs_get(int context, int request, int *value);
+void Cblacs_gridinit(int *context, char *order, int np_row, int np_col);
+void Cblacs_gridinfo(int context, int *np_row, int *np_col, int *my_row, int *my_col);
+void Cblacs_gridexit(int context);
+void Cblacs_exit(int status);
+void descinit_(int *desc, int *m, int *n, int *mb, int *nb, int *irsrc, int *icsrc, int *ictxt,
+               int *lld, int *info);
+int numroc_(int *n, int *nb, int *iproc, int *isrcproc, int *nprocs);
+void pdgemr2d_(int *m, int *n, double *A, int *ia, int *ja, int *desca, double *B, int *ib, int *jb,
+               int *descb, int *context);
+}
+
 #endif
 
 #include "Timer/Timer.h"
@@ -284,14 +312,16 @@ int HwaUtil::Mat_Demo::lapack_eig(double *eigval, double *eigvec) {
     int info = 0;
     int lwork = 3 * nrows - 1;
     double *work = new double[lwork];
+    memcpy(eigvec, d, sizeof(double) * nrows * nrows);
 #if defined(__APPLE__) || defined(__MACOSX)
     dsyev_("V", "U", &nrows, d, &nrows, eigval, work, &lwork, &info);
-#else if defined(__linux__)
-    info=LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', nrows, d, nrows, eigval);
+#else if defined(__linux__) || defined(__linux)
+    info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', nrows, eigvec, nrows, eigval);
 #endif
     if (info != 0) {
         Timer::tock("HwaUtil::Mat_Demo", "lapack_eig");
-        return 0;
+        std::cerr << "Error: Mat_Demo::lapack_eig: LAPACK dsyev failed" << std::endl;
+        return info;
     }
     for (int i = 0; i < nrows; i++) {
         for (int j = 0; j < nrows; j++) {
@@ -299,7 +329,7 @@ int HwaUtil::Mat_Demo::lapack_eig(double *eigval, double *eigvec) {
         }
     }
     Timer::tock("HwaUtil::Mat_Demo", "lapack_eig");
-    return 1;
+    return 0;
 }
 
 HwaUtil::Mat_Demo::Mat_Demo(std::istream &is) {
@@ -397,3 +427,162 @@ HwaUtil::Mat_Demo &HwaUtil::mat_add(const HwaUtil::Mat_Demo &a, const HwaUtil::M
     return *m;
 }
 
+#ifdef __SCALAPACK__
+
+int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
+    Timer::tick("HwaUtil::Mat_Demo", "scalapack_eig");
+    // Constants
+    int ZERO = 0;
+    int ONE = 1;
+    int NEGONE = -1;
+
+    int my_rank;          // 当前进程的rank
+    int num_procs;        // 进程总数
+    int blacs_context;    // CBLACS上下文
+
+    /* 获取当前进程的rank和进程总数 */
+    Cblacs_pinfo(&my_rank, &num_procs);
+    Cblacs_get(-1, 0, &blacs_context);
+
+    /* 设置进程网格 */
+    int nprow = (int) sqrt(num_procs);
+    int npcol = num_procs / nprow;
+    while (nprow * npcol != num_procs) {
+        nprow++;
+        npcol = num_procs / nprow;
+    }
+
+    char order = 'R';
+    Cblacs_gridinit(&blacs_context, &order, nprow, npcol);
+    int my_row, my_col;
+    Cblacs_gridinfo(blacs_context, &nprow, &npcol, &my_row, &my_col);
+
+    /* 设置当前进程的局部矩阵 */
+    int block_size = 2; //TODO: make it a parameter
+    int nrow_loc = numroc_(&nrows, &block_size, &my_row, &ZERO, &nprow);
+    int ncol_loc = numroc_(&ncols, &block_size, &my_col, &ZERO, &npcol);
+    double *a_loc = new double[nrow_loc * ncol_loc]; // 存储局部矩阵
+    for (int i = 0; i < nrow_loc; i++) {
+        int i_glb = idx_l2g(i, block_size, my_row, nprow);
+        for (int j = 0; j < ncol_loc; j++) {
+            int j_lglb = idx_l2g(j, block_size, my_col, npcol);
+            a_loc[i + j * nrow_loc] = d[i_glb + j_lglb * nrows];
+        }
+    }
+
+    double *z_loc = new double[nrows * ncols]; // 存储局部特征向量
+
+    /* 获得desc */
+    int desc_a[9];
+    int info;
+    descinit_(desc_a, &nrows, &ncols, &block_size, &block_size,
+              &ZERO, &ZERO, &blacs_context, &nrow_loc, &info);
+    if (info != 0) {
+        Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
+        throw std::runtime_error("Error: Mat_Demo::scalapack_eig: descinit_ failed");
+    }
+    int desc_z[9];
+    descinit_(desc_z, &nrows, &ncols, &block_size, &block_size,
+              &ZERO, &ZERO, &blacs_context, &nrow_loc, &info);
+    if (info != 0) {
+        Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
+        throw std::runtime_error("Error: Mat_Demo::scalapack_eig: descinit_ failed");
+    }
+
+    /* 使用pdsyevd_计算特征值和特征向量 */
+    int lwork = -1;
+    int liwork = -1;
+    double *work = new double[1];
+    int *iwork = new int[1];
+
+    char jobz = 'V'; // 计算特征值和特征向量
+    char uplo = 'U'; // 上三角存储
+    // double *w = new double[nrow_loc];
+
+    pdsyevd_(&jobz, &uplo, &nrows, a_loc, &ONE, &ONE, desc_a,
+             eigval, z_loc, &ONE, &ONE, desc_z,
+             work, &lwork, iwork, &liwork,
+             &info);
+    if (info != 0) {
+        Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
+        throw std::runtime_error("Error: Mat_Demo::scalapack_eig: first trial of pdsyevd_ failed");
+    }
+
+    lwork = (int) work[0];
+    liwork = iwork[0];
+    delete[] work;
+    delete[] iwork;
+    work = new double[lwork];
+    iwork = new int[liwork];
+    pdsyevd_(&jobz, &uplo, &nrows, a_loc, &ONE, &ONE, desc_a,
+             eigval, z_loc, &ONE, &ONE, desc_z,
+             work, &lwork, iwork, &liwork,
+             &info);
+    if (info != 0) {
+        Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
+        throw std::runtime_error("Error: Mat_Demo::scalapack_eig: second trial of pdsyevd_ failed");
+    }
+
+    // 将局部的特征值和特征向量收集到主进程
+    const int TAG_Z = 0;
+    const int TAG_NROW_LOC = 1;
+    const int TAG_NCOL_LOC = 2;
+    const int TAG_MY_ROW = 3;
+    const int TAG_MY_COL = 4;
+
+    if (my_rank != 0) {
+        MPI_Send(z_loc, nrows * ncols, MPI_DOUBLE, 0, TAG_Z, MPI_COMM_WORLD);
+        MPI_Send(&nrow_loc, 1, MPI_INT, 0, TAG_NROW_LOC, MPI_COMM_WORLD);
+        MPI_Send(&ncol_loc, 1, MPI_INT, 0, TAG_NCOL_LOC, MPI_COMM_WORLD);
+        MPI_Send(&my_row, 1, MPI_INT, 0, TAG_MY_ROW, MPI_COMM_WORLD);
+        MPI_Send(&my_col, 1, MPI_INT, 0, TAG_MY_COL, MPI_COMM_WORLD);
+    }
+    if (my_rank == 0) {
+        double *z_buf = new double[nrows * ncols];
+        int nrow_loc_buf, ncol_loc_buf, my_row_buf, my_col_buf;
+        for (int i = 0; i < num_procs; ++i) {
+            if (i == 0) {
+                memcpy(z_buf, z_loc, nrows * ncols * sizeof(double));
+                nrow_loc_buf = nrow_loc;
+                ncol_loc_buf = ncol_loc;
+                my_row_buf = my_row;
+                my_col_buf = my_col;
+            } else {
+                MPI_Recv(z_buf, nrows * ncols, MPI_DOUBLE, i, TAG_Z, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(&nrow_loc_buf, 1, MPI_INT, i, TAG_NROW_LOC, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(&ncol_loc_buf, 1, MPI_INT, i, TAG_NCOL_LOC, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(&my_row_buf, 1, MPI_INT, i, TAG_MY_ROW, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(&my_col_buf, 1, MPI_INT, i, TAG_MY_COL, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
+            for (int j = 0; j < nrow_loc_buf; ++j) {
+                int i_glb = idx_l2g(j, block_size, my_row_buf, nprow);
+                for (int k = 0; k < ncol_loc_buf; ++k) {
+                    int j_glb = idx_l2g(k, block_size, my_col_buf, npcol);
+                    eigvec[i_glb + j_glb * nrows] = z_buf[j + k * nrow_loc_buf];
+                }
+            }
+        }
+        delete[] z_buf;
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    delete[] a_loc;
+    delete[] z_loc;
+    delete[] work;
+    delete[] iwork;
+
+    Cblacs_gridexit(blacs_context);
+    Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
+    return 0;
+}
+
+// 将局部矩阵的行列号转换为全局矩阵的行列号
+int HwaUtil::Mat_Demo::idx_l2g(int idx_l, int block_size, int i_proc, int n_proc) {
+    return (idx_l / block_size * n_proc * block_size // 完整的周期
+            + i_proc * block_size                 // 周期内的进程块偏移
+            + idx_l % block_size    // 进程块内的偏移
+    );
+}
+
+#endif

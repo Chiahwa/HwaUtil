@@ -6,6 +6,8 @@
 #define HWAUTIL_MAT_DEMO_H
 
 #include <iostream>
+
+
 namespace HwaUtil{
     class Mat_Demo {
     public:
@@ -48,9 +50,11 @@ namespace HwaUtil{
 
         int is_real_symm() const; //check if the matrix is real symmetric matrix(1) or not(0).
 
-        int lapack_eig(double *eigval, double *eigvec); //using LAPACK to calculate eigenvalues and eigenvectors, RSM assumed.Return 1 if success.
+        int lapack_eig(double *eigval, double *eigvec); //using LAPACK to calculate eigenvalues and eigenvectors, RSM assumed.Return 0 if success.
 
-
+#ifdef __SCALAPACK__ //if SCALAPACK is available.
+        int scalapack_eig(double *eigval, double *eigvec); //using SCALAPACK to calculate eigenvalues and eigenvectors, RSM assumed.Return 0 if success.
+#endif
         Mat_Demo &operator =(const Mat_Demo &a);
 
         //access the matrix elements.
@@ -68,6 +72,8 @@ namespace HwaUtil{
 
         //holds data for the matrix.
         double *d = nullptr;
+
+        static int idx_l2g(int idx_l, int block_size, int i_proc, int n_proc);
     };
 
     // Performs alpha * a + beta * b
