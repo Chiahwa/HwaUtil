@@ -7,6 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin/)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/)
 
+add_executable(try tryanything.cpp)
+
+
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+#find_package(GFortran REQUIRED)
 
 if ("${MPI}" STREQUAL on)
     find_package(MPI REQUIRED)
@@ -23,16 +29,26 @@ if ("${MPI}" STREQUAL on)
     message(STATUS "MPI_INCLUDE_PATH: ${MPI_INCLUDE_PATH}")
     add_compile_definitions(${MPI_COMPILE_DEFINITIONS})
     message(STATUS "MPI is on")
+
+    target_link_libraries(try ${MPI_LIBRARIES})
+
+    if ("${SCALAPACK}" STREQUAL on)
+        find_library(SCALAPACK_LIB scalapack)
+
+        if (SCALAPACK_LIB)
+            message(STATUS "SCALAPACK_LIB: ${SCALAPACK_LIB}")
+            add_compile_definitions(__SCALAPACK__)
+            message(STATUS "SCALAPACK is on")
+            target_link_libraries(try ${SCALAPACK_LIB} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} -lgfortran)
+        else ()
+            message(STATUS "SCALAPACK is off")
+        endif ()
+    endif ()
 else ()
     message(STATUS "MPI is off")
 endif ()
 
-add_executable(try tryanything.cpp)
 
-target_link_libraries(try ${MPI_LIBRARIES})
-target_include_directories(try PUBLIC ${MPI_INCLUDE_PATH})
-message(STATUS ${SCALAPACK_LIBRARIES})
-target_link_libraries(try ${SCALAPACK_LIBRARIES})
 
 add_subdirectory(src)
 add_subdirectory(exec)

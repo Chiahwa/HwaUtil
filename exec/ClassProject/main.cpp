@@ -35,6 +35,10 @@ string working_dir;
 char *working_dir_cstr;
 int working_dir_len;
 
+#define DIAGO_LAPACK 0
+#define DIAGO_SCALAPACK 1
+int diago_lib = DIAGO_LAPACK; // 0 for Lapack, 1 for ScaLAPACK
+
 double lx, ly, lz;
 int nx, ny, nz;
 int nx_per_proc, nx_first_proc, nx_this_proc;
@@ -70,7 +74,6 @@ void synchronize();
 #endif
 
 int main(int argc, char **argv) {
-
 #ifdef __MPI__
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &proc_rank);
@@ -262,14 +265,7 @@ void read_V(string path, Func3d &funcV) {
     funcV.dz = (funcV.zrange[1] - funcV.zrange[0]) / funcV.nz;
     funcV.v = new double[funcV.nx * funcV.ny * funcV.nz];
 
-    //stringstream buffer;
-    //buffer << fs.rdbuf();
-    //cout<<"buffer size: "<<buffer.str().size()<<endl;
-    //FILE *fp = fopen(path.c_str(), "r");
-    //for (int i = 0; i < nlines; i++)
-    //    fscanf(fp, "%*[^\n]\n");
     for (int i = 0; i < funcV.nx * funcV.ny * funcV.nz; i++)
-        //fscanf(fp, "%lf,", &funcV.v[i]);
         fs >> funcV.v[i];
     fs.close();
     Timer::tock("HwaUtil::(ClassProject)", "read_V");
@@ -306,6 +302,11 @@ void read_args(const string &input_file_path) {
     lx = stoi(arguments.GetArgV("lx"));
     ly = stoi(arguments.GetArgV("ly"));
     lz = stoi(arguments.GetArgV("lz"));
+    string diago_lib_str = arguments.GetArgV("diago_lib");
+    if (diago_lib_str == "lapack") diago_lib = DIAGO_LAPACK;
+    else if (diago_lib_str == "scalapack") diago_lib = DIAGO_SCALAPACK;
+    else throw invalid_argument("Invalid diago_lib argument");
+
     Timer::tock("HwaUtil::(ClassProject)", "read_args");
 }
 
@@ -329,6 +330,7 @@ void broadcast() {
     MPI_Bcast(&lz, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(&n_f, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&working_dir_len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&diago_lib, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     nx_per_proc = nx / n_proc;
     nx_first_proc = nx - (n_proc - 1) * nx_per_proc;
@@ -362,16 +364,17 @@ void broadcast() {
     MPI_Bcast(&global_V.dy, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(&global_V.dz, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    int displ=(nx_first_proc-nx_per_proc)*ny*nz;
+    int displ = (nx_first_proc - nx_per_proc) * ny * nz;
 
-    MPI_Scatter(global_V.v+displ, nx_per_proc * ny * nz, MPI_DOUBLE, local_V.v, nx_per_proc * ny * nz, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    if(proc_rank==0) {
-        memcpy(local_V.v,global_V.v,nx_first_proc*ny*nz*sizeof(double));
+    MPI_Scatter(global_V.v + displ, nx_per_proc * ny * nz, MPI_DOUBLE,
+                local_V.v, nx_per_proc * ny * nz, MPI_DOUBLE,
+                0, MPI_COMM_WORLD);
+    if (proc_rank == 0) {
+        memcpy(local_V.v, global_V.v, nx_first_proc * ny * nz * sizeof(double));
         delete[] global_V.v;
     }
 
     synchronize();
-    //if(proc_rank==1) cout<<global_V.xrange[1]<<endl;
     if (proc_rank == 0) cout << "Broadcasting radial distribution functions..." << endl;
 
     for (int i = 0; i < n_f; i++) {
@@ -400,7 +403,7 @@ void compute_H() {
 
     for (int l = 0; l < n_points; l++) {
         for (int i0 = 0; i0 < nx_this_proc; i0++) {
-            int i = i0 + (proc_rank == 0 ? 0 : (proc_rank-1) * nx_per_proc + nx_first_proc);
+            int i = i0 + (proc_rank == 0 ? 0 : (proc_rank - 1) * nx_per_proc + nx_first_proc);
             double xl = points[l].x - i * lx / nx;
             for (int j = 0; j < ny; j++) {
                 double yl = points[l].y - j * ly / ny;
@@ -413,7 +416,9 @@ void compute_H() {
                         double ym = points[m].y - j * ly / ny;
                         double zm = points[m].z - k * lz / nz;
                         fff[1] = (*f)(sqrt(xm * xm + ym * ym + zm * zm));
-                        h[l * n_points + m] += local_V.v[i0 * ny * nz + j * nz + k] * fff[0] * fff[1] * global_V.dx * global_V.dy * global_V.dz;
+                        h[l * n_points + m] +=
+                                local_V.v[i0 * ny * nz + j * nz + k] * fff[0] * fff[1] * global_V.dx * global_V.dy *
+                                global_V.dz;
                     }
                 }
             }
@@ -427,7 +432,9 @@ void compute_H() {
     }
     Timer::tock("HwaUtil::(ClassProject)", "compute_H");
 }
+
 #ifdef __MPI__
+
 void gather_H() {
     Timer::tick("HwaUtil::(ClassProject)", "gather_H");
     if (proc_rank == 0)
@@ -435,12 +442,13 @@ void gather_H() {
     MPI_Reduce(h, H, n_points * n_points, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     Timer::tock("HwaUtil::(ClassProject)", "gather_H");
 }
+
 #endif
 
 void diagonize() {
     Timer::tick("HwaUtil::(ClassProject)", "diagonize");
-    if (proc_rank == 0) {
-        if (arguments.GetArgV("diago_lib") == "lapack") {
+    if (diago_lib == DIAGO_LAPACK) {
+        if (proc_rank == 0) {
             auto *mat = new Mat_Demo(n_points, n_points, H);
             auto *eig = new double[n_points];
             auto *eigv = new double[n_points * n_points];
@@ -455,12 +463,12 @@ void diagonize() {
 
             eig_file << "Eigenvalues:" << endl;
             for (int i = 0; i < n_points; i++) {
-                eig_file <<setw(14)<< eig[i] << endl;
+                eig_file << setw(14) << eig[i] << endl;
             }
             eigv_file << "Eigenvectors:" << endl;
             for (int i = 0; i < n_points; i++) {
                 for (int j = 0; j < n_points; j++) {
-                    eigv_file << setw(14)<< eigv[i * n_points + j];
+                    eigv_file << setw(14) << eigv[i * n_points + j];
                 }
                 eigv_file << endl;
             }
@@ -468,7 +476,7 @@ void diagonize() {
 
             for (int i = 0; i < n_points; i++) {
                 for (int j = 0; j < n_points; j++) {
-                    mat_file << setw(14)<<H[i * n_points + j] ;
+                    mat_file << setw(14) << H[i * n_points + j];
                 }
                 mat_file << endl;
             }
@@ -479,13 +487,24 @@ void diagonize() {
             delete[] eigv;
             delete mat;
         }
+    } else if (diago_lib == DIAGO_SCALAPACK) {
+# ifdef __SCALAPACK__
+        
+# else
+        if (proc_rank == 0)
+            cerr << "Error: scalapack is not supported on this platform. Please choose lapack." << endl;
+        exit(1);
+# endif
     }
     Timer::tock("HwaUtil::(ClassProject)", "diagonize");
 }
+
 #ifdef __MPI__
+
 void synchronize() {
     Timer::tick("HwaUtil::(ClassProject)", "synchronize");
     MPI_Barrier(MPI_COMM_WORLD);
     Timer::tock("HwaUtil::(ClassProject)", "synchronize");
 }
+
 #endif
