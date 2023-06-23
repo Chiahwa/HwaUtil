@@ -444,6 +444,8 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
     Cblacs_pinfo(&my_rank, &num_procs);
     Cblacs_get(-1, 0, &blacs_context);
 
+    std::cout<<my_rank<<": init blacs"<<std::endl;
+
     /* 设置进程网格 */
     int nprow = (int) sqrt(num_procs);
     int npcol = num_procs / nprow;
@@ -488,6 +490,8 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
         Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
         throw std::runtime_error("Error: Mat_Demo::scalapack_eig: descinit_ failed");
     }
+
+    std::cout<<"got desc"<<std::endl;
 
     /* 使用pdsyevd_计算特征值和特征向量 */
     int lwork = -1;
@@ -565,7 +569,7 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
         delete[] z_buf;
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD); // TODO: MPI 的调用是否具有通用性？
 
     delete[] a_loc;
     delete[] z_loc;

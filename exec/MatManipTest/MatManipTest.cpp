@@ -21,14 +21,14 @@ int main(int argc, char *argv[]) {
 
     //path for argument file
     string input_file_path;
-    if(argc != 2)
+    if (argc != 2)
         getline(cin, input_file_path);
     else input_file_path = argv[1];
 
     ifstream fs(input_file_path);
-    if(fs.fail())
+    if (fs.fail())
         throw invalid_argument("Invalid input file path");
-    cout<<"Reading argument file:"<<input_file_path<<"..."<<endl;
+    cout << "Reading argument file:" << input_file_path << "..." << endl;
     ar.ReadArgs(fs);
     fs.close();
 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
     auto result_print_str = ar.GetArgV("result_print");
     auto timer_print_str = ar.GetArgV("timer_print");
     if (calculation_str == "matmul") {
-        cout<<"Calculation: matmul"<<endl;
+        cout << "Calculation: matmul" << endl;
         //read two matrices
         Mat_Demo *m1, *m2;
         if (input_type_str == "file") {
@@ -57,14 +57,14 @@ int main(int argc, char *argv[]) {
         }
 
         // do matrix multiplication
-        cout<<"Performing BLAS matrix multiplication..."<<endl;
+        cout << "Performing BLAS matrix multiplication..." << endl;
         auto m3_blas = m1->blas_mult(*m2);
-        cout<<"Performing manual matrix multiplication..."<<endl;
+        cout << "Performing manual matrix multiplication..." << endl;
         auto m3_manual = (*m1) * (*m2);
 
         //print result
-        if(result_print_str == "1"){
-            cout<<R"(Writing result to files "mult_manual.txt" and "mult_manual.txt"...)"<<endl;
+        if (result_print_str == "1") {
+            cout << R"(Writing result to files "mult_manual.txt" and "mult_manual.txt"...)" << endl;
             fstream fs_manual("mult_manual.txt", ios::out);
             fs_manual << m3_manual;
             fs_manual.close();
@@ -74,10 +74,8 @@ int main(int argc, char *argv[]) {
         }
 
         delete m1, delete m2;
-    }
-
-    else if (calculation_str == "rsmdiago") {
-        cout<<"Calculation: RSMdiago"<<endl;
+    } else if (calculation_str == "rsmdiago") {
+        cout << "Calculation: RSMdiago" << endl;
         //read matrix
         Mat_Demo *m1;
         if (input_type_str == "file") {
@@ -90,14 +88,13 @@ int main(int argc, char *argv[]) {
         }
 
         // do RSMdiago
-        cout<<"Performing RSMdiago..."<<endl;
-        int n=m1->nc();
+        cout << "Performing RSMdiago..." << endl;
+        int n = m1->nc();
         double *eigval = new double[n];
-        double *eigvec = new double[n*n];
-        if(m1->lapack_eig(eigval, eigvec)==0)
-        {
-            if(result_print_str == "1") {
-                cout<<R"(Writing eigenvalues and eigenvectors to files "eig.txt" and "eigvec.txt"...)"<<endl;
+        double *eigvec = new double[n * n];
+        if (m1->lapack_eig(eigval, eigvec) == 0) {
+            if (result_print_str == "1") {
+                cout << R"(Writing eigenvalues and eigenvectors to files "eig.txt" and "eigvec.txt"...)" << endl;
                 fstream fs_eigval("eig.txt", ios::out);
                 fstream fs_eigvec("eigvec.txt", ios::out);
                 for (int i = 0; i < n; i++)
@@ -108,14 +105,13 @@ int main(int argc, char *argv[]) {
                     fs_eigvec << endl;
                 }
             }
-        }
-        else
-            cout<<"RSMdiago didn't finish"<<endl;
+        } else
+            cout << "RSMdiago didn't finish" << endl;
 
     } else {
         throw invalid_argument("Invalid calculation");
     }
-    if(timer_print_str == "1")
+    if (timer_print_str == "1")
         HwaUtil::Timer::print_time_usage();
 
     return 0;

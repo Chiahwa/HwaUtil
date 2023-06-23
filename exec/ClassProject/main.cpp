@@ -51,23 +51,31 @@ Func3d global_V, local_V;
 double *h;
 double *H;
 
+void read_args(const string &input_file_path);
+
 void read_point(string points_path, Point *&pts, int n = 2);
 
 void read_f(const string &path, RadialFunc *&ff, int n = 1);
 
 void read_V(string path, Func3d &funcV);
 
-void read_args(const string &input_file_path);
-
-void compute_H();
-
-void diagonize();
-
 #ifdef __MPI__
 
 void broadcast();
 
+#endif
+
+void compute_H();
+
+#ifdef __MPI__
+
 void gather_H();
+
+#endif
+
+void diagonize();
+
+#ifdef __MPI__
 
 void synchronize();
 
@@ -447,54 +455,73 @@ void gather_H() {
 
 void diagonize() {
     Timer::tick("HwaUtil::(ClassProject)", "diagonize");
+
+    Mat_Demo *mat;
+    double *eig;
+    double *eigv;
     if (diago_lib == DIAGO_LAPACK) {
         if (proc_rank == 0) {
-            auto *mat = new Mat_Demo(n_points, n_points, H);
-            auto *eig = new double[n_points];
-            auto *eigv = new double[n_points * n_points];
+            mat = new Mat_Demo(n_points, n_points, H);
+            eig = new double[n_points];
+            eigv = new double[n_points * n_points];
             mat->lapack_eig(eig,
                             eigv);
-            //pdsyevx_(n_points, H, eig, eigv);
-            filesystem::remove_all(working_dir + "output");
-            filesystem::create_directory(working_dir + "output");
-            ofstream eig_file(working_dir + "output/eigenvalues.log");
-            ofstream eigv_file(working_dir + "output/eigenvectors.log");
-            ofstream mat_file(working_dir + "output/H.log");
+        }
+    } else if (diago_lib == DIAGO_SCALAPACK) {
+# ifdef __SCALAPACK__
+        MPI_Bcast(H, n_points * n_points, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        mat = new Mat_Demo(n_points, n_points, H);
+        eig = new double[n_points];
+        eigv = new double[n_points * n_points];
+        mat->scalapack_eig(eig,
+                           eigv);
 
-            eig_file << "Eigenvalues:" << endl;
-            for (int i = 0; i < n_points; i++) {
-                eig_file << setw(14) << eig[i] << endl;
-            }
-            eigv_file << "Eigenvectors:" << endl;
-            for (int i = 0; i < n_points; i++) {
-                for (int j = 0; j < n_points; j++) {
-                    eigv_file << setw(14) << eigv[i * n_points + j];
-                }
-                eigv_file << endl;
-            }
-            mat_file << "H:" << endl;
-
-            for (int i = 0; i < n_points; i++) {
-                for (int j = 0; j < n_points; j++) {
-                    mat_file << setw(14) << H[i * n_points + j];
-                }
-                mat_file << endl;
-            }
-            eig_file.close();
-            eigv_file.close();
-            mat_file.close();
+        // TODO: Check if this is correct
+        if (proc_rank != 0){
             delete[] eig;
             delete[] eigv;
             delete mat;
         }
-    } else if (diago_lib == DIAGO_SCALAPACK) {
-# ifdef __SCALAPACK__
-        
+
 # else
-        if (proc_rank == 0)
-            cerr << "Error: scalapack is not supported on this platform. Please choose lapack." << endl;
-        exit(1);
+            if (proc_rank == 0)
+                cerr << "Error: scalapack is not supported on this platform. Please choose lapack." << endl;
+            exit(1);
 # endif
+    }
+
+    if (proc_rank == 0) {
+        filesystem::remove_all(working_dir + "output");
+        filesystem::create_directory(working_dir + "output");
+        ofstream eig_file(working_dir + "output/eigenvalues.log");
+        ofstream eigv_file(working_dir + "output/eigenvectors.log");
+        ofstream mat_file(working_dir + "output/H.log");
+
+        eig_file << "Eigenvalues:" << endl;
+        for (int i = 0; i < n_points; i++) {
+            eig_file << setw(14) << eig[i] << endl;
+        }
+        eigv_file << "Eigenvectors:" << endl;
+        for (int i = 0; i < n_points; i++) {
+            for (int j = 0; j < n_points; j++) {
+                eigv_file << setw(14) << eigv[i * n_points + j];
+            }
+            eigv_file << endl;
+        }
+        mat_file << "H:" << endl;
+
+        for (int i = 0; i < n_points; i++) {
+            for (int j = 0; j < n_points; j++) {
+                mat_file << setw(14) << H[i * n_points + j];
+            }
+            mat_file << endl;
+        }
+        eig_file.close();
+        eigv_file.close();
+        mat_file.close();
+        delete[] eig;
+        delete[] eigv;
+        delete mat;
     }
     Timer::tock("HwaUtil::(ClassProject)", "diagonize");
 }
