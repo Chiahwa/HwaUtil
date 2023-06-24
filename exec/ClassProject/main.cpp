@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
 
 #ifdef  __OPENMP__
     int max_threads = omp_get_max_threads();
-    if(proc_rank == 0) cout << "Max threads: " << max_threads << endl;
+    if(proc_rank == 0) cout << "    Using OpenMP. Max threads: " << max_threads << endl;
     int threads_per_proc = max_threads / n_proc;
     int threads_left = max_threads % n_proc;
     // number of threads for this process. Processes in the middle use one more thread, for the sake of load balance.
@@ -155,7 +155,6 @@ int main(int argc, char **argv) {
 
 #endif
     compute_H();
-
 
     /* (7) gather H */
 #ifdef __MPI__
@@ -519,7 +518,6 @@ void diagonize() {
             delete[] eigv;
             delete mat;
         }
-
 # else
         if (proc_rank == 0)
             cerr << "Error: scalapack is not supported on this platform. Please choose lapack." << endl;
