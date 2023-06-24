@@ -26,7 +26,7 @@ if ("${MPI}" STREQUAL on)
     # Scalapack
     if ("${SCALAPACK}" STREQUAL on)
         message(STATUS ${PROG_NAME} ": Scalapack is on")
-        target_link_libraries(${PROG_NAME} libscalapack.a)
+        target_link_libraries(${PROG_NAME} libscalapack.a -lgfortran)
     endif ()
 endif ()
 
