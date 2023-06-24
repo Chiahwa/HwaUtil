@@ -5,24 +5,6 @@
 #ifndef HWAUTIL_CLASSPROJECT_MISC_H
 #define HWAUTIL_CLASSPROJECT_MISC_H
 
-extern "C" {
-void Cblacs_pinfo(int*, int*);
-void Cblacs_get(int, int, int*);
-void Cblacs_gridinit(int*, char const*, int, int);
-void Cblacs_gridinfo(int, int*, int*, int*, int*);
-void Cblacs_barrier(int , char*);
-void Cblacs_gridexit(int);
-void Cblacs_exit(int);
-
-int numroc_(int const& n, int const& nb, int const& iproc, int const& isproc, int const& nprocs);
-int indxg2p_(int const& glob, int const& nb, int const& iproc, int const& isproc, int const& nprocs);
-int indxl2g_(int const& loc, int const& nb, int const& iproc, int const& isproc, int const& nprocs);
-void descinit_( int *desc, int const& m, int const& n, int const& mb, int const& nb, int const& irsrc, int const& icsrc, int const& ictxt, int const& lld, int *info);
-void pdgesv_( int const& n, int const& nrhs, double *A, int const& ia, int const& ja, int *desca, int* ipiv, double *B, int const& ib, int const& jb, int *descb, int *info);
-void pdgemm_( char const *transa, char const *transb, int const& M, int const& N, int const& K, double const& ALPHA,  double * A, int const& IA, int const& JA, int * DESCA, double * B, int const& IB, int const& JB, int * DESCB, double const& BETA, double * C, int const& IC, int const& JC, int * DESCC );
-double pdlange_( char const *norm, int const& m, int const& n, double *A, int const& ia, int const& ja, int *desca, double *work);
-}
-
 
 struct Point {
     double x, y, z;

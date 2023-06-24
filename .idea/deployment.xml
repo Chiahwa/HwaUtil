@@ -13,6 +13,7 @@
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug_mpi" />
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug_bohrium_mpi" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release_bohrium_mpi_noomp" />
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug_bohrium" />
           </excludedPaths>
         </serverdata>

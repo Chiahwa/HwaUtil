@@ -10,7 +10,9 @@
 #include <cmath>
 
 #ifdef __OPENMP__
+
 #include <omp.h>
+
 #endif
 
 #include "ArgumentReader/ArgumentReader.h"
@@ -138,9 +140,22 @@ int main(int argc, char **argv) {
     synchronize();
 #endif
     /* (6) calculate integral */
-    if (proc_rank == 0) cout << "Start calculating integral..." << endl;
+    if (proc_rank == 0) cout << "Calculating integral..." << endl;
 
+#ifdef  __OPENMP__
+    int max_threads = omp_get_max_threads();
+    if(proc_rank == 0) cout << "Max threads: " << max_threads << endl;
+    int threads_per_proc = max_threads / n_proc;
+    int threads_left = max_threads % n_proc;
+    // number of threads for this process. Processes in the middle use one more thread, for the sake of load balance.
+    int loidx = (n_proc - threads_left) / 2;
+    int n_threads_this_proc =  threads_per_proc + (proc_rank >= loidx && proc_rank < loidx + threads_left ? 1 : 0);
+    omp_set_num_threads(n_threads_this_proc);
+    cout << "Process " << proc_rank << " uses " << n_threads_this_proc << " threads." << endl;
+
+#endif
     compute_H();
+
 
     /* (7) gather H */
 #ifdef __MPI__
@@ -401,11 +416,6 @@ void broadcast() {
 void compute_H() {
     Timer::tick("HwaUtil::(ClassProject)", "compute_H");
     h = new double[n_points * n_points];
-    //int nx_start = nx / n_proc * proc_rank;
-    //int nx_end = nx / n_proc * (proc_rank + 1) > nx ? nx : nx / n_proc * (proc_rank + 1);
-#ifdef __OPENMP__
-    omp_set_num_threads(2);
-#endif
 
     double fff[2];
     double xl, yl, zl, xm, ym, zm, r;
@@ -422,23 +432,31 @@ void compute_H() {
                 h[l * n_points + m] = 0;
                 continue;
             }
+#ifdef __OPENMP__
+#pragma omp parallel for\
+            private(xl, yl, zl, xm, ym, zm, r, fff) \
+            shared(cout, l, m, nx, ny, nz, lx, ly, lz, nx_per_proc, nx_first_proc, nx_this_proc, proc_rank, points, f, n_points, local_V, global_V)\
+            schedule(static) \
+            reduction(+:h[l * n_points + m]) \
+            default(none)
+#endif
             for (int i0 = 0; i0 < nx_this_proc; i0++) {
                 int i = i0 + (proc_rank == 0 ? 0 : (proc_rank - 1) * nx_per_proc + nx_first_proc);
+                xl = points[l].x - i * lx / nx;
+                xm = points[m].x - i * lx / nx;
                 for (int j = 0; j < ny; j++) {
+                    yl = points[l].y - j * ly / ny;
+                    ym = points[m].y - j * ly / ny;
                     for (int k = 0; k < nz; k++) {
-                        xl = points[l].x - i * lx / nx;
-                        yl = points[l].y - j * ly / ny;
                         zl = points[l].z - k * lz / nz;
                         r = sqrt(xl * xl + yl * yl + zl * zl);
                         if (r > f->cutoff) continue;
                         fff[0] = (*f)(r);
-
-                        xm = points[m].x - i * lx / nx;
-                        ym = points[m].y - j * ly / ny;
                         zm = points[m].z - k * lz / nz;
                         r = sqrt(xm * xm + ym * ym + zm * zm);
                         if (r > f->cutoff) continue;
                         fff[1] = (*f)(r);
+//#pragma omp atomic
                         h[l * n_points + m] +=
                                 local_V.v[i0 * ny * nz + j * nz + k] * fff[0] * fff[1] * global_V.dx * global_V.dy *
                                 global_V.dz;
