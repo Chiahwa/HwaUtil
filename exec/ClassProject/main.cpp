@@ -406,22 +406,22 @@ void compute_H() {
 #ifdef __OPENMP__
     omp_set_num_threads(2);
 #endif
+
     double fff[2];
     double xl, yl, zl, xm, ym, zm, r;
 
     for (int l = 0; l < n_points; l++) {
         for (int m = l; m < n_points; m++) {
-            /*// If the distance between two points is larger than the cutoff,
+            // If the distance between two points is larger than the cutoff,
             // set the value to 0 and skip the rest calculation.
             double dis_x = points[l].x - points[m].x;
             double dis_y = points[l].y - points[m].y;
             double dis_z = points[l].z - points[m].z;
             double dis = sqrt(dis_x * dis_x + dis_y * dis_y + dis_z * dis_z);
-            if (dis > 2 * f[0].cutoff) {
+            if (dis > 2 * (f->cutoff)) {
                 h[l * n_points + m] = 0;
-                h[m * n_points + l] = 0;
                 continue;
-            }*/
+            }
             for (int i0 = 0; i0 < nx_this_proc; i0++) {
                 int i = i0 + (proc_rank == 0 ? 0 : (proc_rank - 1) * nx_per_proc + nx_first_proc);
                 for (int j = 0; j < ny; j++) {
@@ -430,14 +430,14 @@ void compute_H() {
                         yl = points[l].y - j * ly / ny;
                         zl = points[l].z - k * lz / nz;
                         r = sqrt(xl * xl + yl * yl + zl * zl);
-                        if (r > f[0].cutoff) continue;
+                        if (r > f->cutoff) continue;
                         fff[0] = (*f)(r);
 
                         xm = points[m].x - i * lx / nx;
                         ym = points[m].y - j * ly / ny;
                         zm = points[m].z - k * lz / nz;
                         r = sqrt(xm * xm + ym * ym + zm * zm);
-                        if (r > f[0].cutoff) continue;
+                        if (r > f->cutoff) continue;
                         fff[1] = (*f)(r);
                         h[l * n_points + m] +=
                                 local_V.v[i0 * ny * nz + j * nz + k] * fff[0] * fff[1] * global_V.dx * global_V.dy *
