@@ -323,11 +323,11 @@ int HwaUtil::Mat_Demo::lapack_eig(double *eigval, double *eigvec) {
         std::cerr << "Error: Mat_Demo::lapack_eig: LAPACK dsyev failed" << std::endl;
         return info;
     }
-    for (int i = 0; i < nrows; i++) {
+    /*for (int i = 0; i < nrows; i++) {
         for (int j = 0; j < nrows; j++) {
             eigvec[i * nrows + j] = d[i * nrows + j];
         }
-    }
+    }*/
     Timer::tock("HwaUtil::Mat_Demo", "lapack_eig");
     return 0;
 }
@@ -440,13 +440,15 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
     int num_procs;        // 进程总数
     int blacs_context;    // CBLACS上下文
 
-    /* 获取当前进程的rank和进程总数 */
+    // 获取当前进程的rank和进程总数
     Cblacs_pinfo(&my_rank, &num_procs);
-    Cblacs_get(-1, 0, &blacs_context);
-
     std::cout<<my_rank<<": init blacs"<<std::endl;
 
-    /* 设置进程网格 */
+    Cblacs_get(-1, 0, &blacs_context);
+    //std::cout<<blacs_context<<std::endl;
+
+
+    // 设置进程网格
     int nprow = (int) sqrt(num_procs);
     int npcol = num_procs / nprow;
     while (nprow * npcol != num_procs) {
@@ -459,10 +461,15 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
     int my_row, my_col;
     Cblacs_gridinfo(blacs_context, &nprow, &npcol, &my_row, &my_col);
 
-    /* 设置当前进程的局部矩阵 */
+    // 设置当前进程的局部矩阵
     int block_size = 2; //TODO: make it a parameter
     int nrow_loc = numroc_(&nrows, &block_size, &my_row, &ZERO, &nprow);
     int ncol_loc = numroc_(&ncols, &block_size, &my_col, &ZERO, &npcol);
+
+    int lld_loc = std::max(1, nrow_loc);
+
+    std::cout<<"Process "<<my_rank<<", nrow_loc: "<<nrow_loc<<std::endl;
+
     double *a_loc = new double[nrow_loc * ncol_loc]; // 存储局部矩阵
     for (int i = 0; i < nrow_loc; i++) {
         int i_glb = idx_l2g(i, block_size, my_row, nprow);
@@ -474,18 +481,19 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
 
     double *z_loc = new double[nrows * ncols]; // 存储局部特征向量
 
-    /* 获得desc */
+    // 获得desc
     int desc_a[9];
     int info;
     descinit_(desc_a, &nrows, &ncols, &block_size, &block_size,
-              &ZERO, &ZERO, &blacs_context, &nrow_loc, &info);
+              &ZERO, &ZERO, &blacs_context, &lld_loc, &info);
     if (info != 0) {
         Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
         throw std::runtime_error("Error: Mat_Demo::scalapack_eig: descinit_ failed");
     }
+
     int desc_z[9];
     descinit_(desc_z, &nrows, &ncols, &block_size, &block_size,
-              &ZERO, &ZERO, &blacs_context, &nrow_loc, &info);
+              &ZERO, &ZERO, &blacs_context, &lld_loc, &info);
     if (info != 0) {
         Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
         throw std::runtime_error("Error: Mat_Demo::scalapack_eig: descinit_ failed");
@@ -493,7 +501,8 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
 
     std::cout<<"got desc"<<std::endl;
 
-    /* 使用pdsyevd_计算特征值和特征向量 */
+
+    // 使用pdsyevd_计算特征值和特征向量
     int lwork = -1;
     int liwork = -1;
     double *work = new double[1];
@@ -576,7 +585,9 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
     delete[] work;
     delete[] iwork;
 
+
     Cblacs_gridexit(blacs_context);
+
     Timer::tock("HwaUtil::Mat_Demo", "scalapack_eig");
     return 0;
 }
