@@ -442,7 +442,7 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
 
     // 获取当前进程的rank和进程总数
     Cblacs_pinfo(&my_rank, &num_procs);
-    std::cout<<my_rank<<": init blacs"<<std::endl;
+    //std::cout<<my_rank<<": init blacs"<<std::endl;
 
     Cblacs_get(-1, 0, &blacs_context);
     //std::cout<<blacs_context<<std::endl;
@@ -468,7 +468,7 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
 
     int lld_loc = std::max(1, nrow_loc);
 
-    std::cout<<"Process "<<my_rank<<", nrow_loc: "<<nrow_loc<<std::endl;
+    //std::cout<<"Process "<<my_rank<<", nrow_loc: "<<nrow_loc<<std::endl;
 
     double *a_loc = new double[nrow_loc * ncol_loc]; // 存储局部矩阵
     for (int i = 0; i < nrow_loc; i++) {
@@ -499,7 +499,7 @@ int HwaUtil::Mat_Demo::scalapack_eig(double *eigval, double *eigvec) {
         throw std::runtime_error("Error: Mat_Demo::scalapack_eig: descinit_ failed");
     }
 
-    std::cout<<"got desc"<<std::endl;
+    //std::cout<<"got desc"<<std::endl;
 
 
     // 使用pdsyevd_计算特征值和特征向量
