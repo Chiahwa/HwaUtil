@@ -144,12 +144,12 @@ int main(int argc, char **argv) {
 
 #ifdef  __OPENMP__
     int max_threads = omp_get_max_threads();
-    if(proc_rank == 0) cout << "    Using OpenMP. Max threads: " << max_threads << endl;
+    if (proc_rank == 0) cout << "    Using OpenMP. Max threads: " << max_threads << endl;
     int threads_per_proc = max_threads / n_proc;
     int threads_left = max_threads % n_proc;
     // number of threads for this process. Processes in the middle use one more thread, for the sake of load balance.
     int loidx = (n_proc - threads_left) / 2;
-    int n_threads_this_proc =  threads_per_proc + (proc_rank >= loidx && proc_rank < loidx + threads_left ? 1 : 0);
+    int n_threads_this_proc = threads_per_proc + (proc_rank >= loidx && proc_rank < loidx + threads_left ? 1 : 0);
     omp_set_num_threads(n_threads_this_proc);
     cout << "Process " << proc_rank << " uses " << n_threads_this_proc << " threads." << endl;
 
@@ -439,13 +439,13 @@ void compute_H() {
             reduction(+:h[l * n_points + m]) \
             default(none)
 #endif
-            for (int i0 = 0; i0 < nx_this_proc; i0++) {
-                int i = i0 + (proc_rank == 0 ? 0 : (proc_rank - 1) * nx_per_proc + nx_first_proc);
-                xl = points[l].x - i * lx / nx;
-                xm = points[m].x - i * lx / nx;
-                for (int j = 0; j < ny; j++) {
-                    yl = points[l].y - j * ly / ny;
-                    ym = points[m].y - j * ly / ny;
+            for (int j = 0; j < ny; j++) {
+                yl = points[l].y - j * ly / ny;
+                ym = points[m].y - j * ly / ny;
+                for (int i0 = 0; i0 < nx_this_proc; i0++) {
+                    int i = i0 + (proc_rank == 0 ? 0 : (proc_rank - 1) * nx_per_proc + nx_first_proc);
+                    xl = points[l].x - i * lx / nx;
+                    xm = points[m].x - i * lx / nx;
                     for (int k = 0; k < nz; k++) {
                         zl = points[l].z - k * lz / nz;
                         r = sqrt(xl * xl + yl * yl + zl * zl);
